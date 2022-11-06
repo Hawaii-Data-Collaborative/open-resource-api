@@ -16,7 +16,7 @@ router.get('/:id', async (ctx) => {
       funding: true,
       location: true,
       phone: true,
-      program: true,
+      // program: true,
       service: true,
     },
   });

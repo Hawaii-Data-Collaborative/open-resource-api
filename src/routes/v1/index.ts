@@ -6,6 +6,7 @@ import favorite from './favorite';
 import taxonomy from './taxonomy';
 import search from './search';
 import service from './service';
+import suggestion from './suggestion';
 import organization from './organization';
 
 const router = new Router({
@@ -19,5 +20,6 @@ router.use(taxonomy.routes()).use(taxonomy.allowedMethods());
 router.use(search.routes()).use(search.allowedMethods());
 router.use(service.routes()).use(service.allowedMethods());
 router.use(organization.routes()).use(organization.allowedMethods());
+router.use(suggestion.routes()).use(suggestion.allowedMethods());
 
 export default router;

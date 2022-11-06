@@ -16,13 +16,16 @@ if (app.env === 'production') {
   app.proxy = true;
 }
 
+let corsOptions;
+
 // Use logger only in development
 if (app.env === 'development') {
   app.use(logger());
+  corsOptions = { credentials: true };
 }
 
 app.use(helmet());
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(json({ pretty: false, param: 'pretty' }));
 app.use(bodyParser());
 app.use(session());

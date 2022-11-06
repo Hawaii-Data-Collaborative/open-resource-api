@@ -2,7 +2,7 @@
   "name": "search-211-api",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node .",
+    "start": "node --inspect=0.0.0.0:9249 .",
     "dev": "nodemon -r dotenv/config src/index.ts",
     "prebuild": "node scripts/prebuild",
     "build": "tsc --build src"
@@ -12,11 +12,11 @@
     "@types/jsonwebtoken": "^8.5.4",
     "@types/jwk-to-pem": "^2.0.1",
     "@types/koa": "^2.13.4",
+    "@types/koa__cors": "^3.0.3",
+    "@types/koa__router": "^8.0.7",
     "@types/koa-bodyparser": "^4.3.2",
     "@types/koa-json": "^2.0.20",
     "@types/koa-logger": "^3.1.1",
-    "@types/koa__cors": "^3.0.3",
-    "@types/koa__router": "^8.0.7",
     "@types/luxon": "^2.0.0",
     "@types/node": "^16.4.10",
     "@types/uuid": "^8.3.1",
@@ -51,6 +51,7 @@
     "koa-logger": "^3.2.1",
     "luxon": "^2.0.2",
     "query-string": "^7.0.1",
+    "sqlite3": "^5.1.2",
     "uuid": "^8.3.2",
     "validator": "^13.6.0"
   }

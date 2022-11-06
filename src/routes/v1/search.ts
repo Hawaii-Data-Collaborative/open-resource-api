@@ -1,203 +1,170 @@
 import Router from '@koa/router';
-
-import elasticsearch from '../../lib/elasticsearch';
+import { program, taxonomy } from '@prisma/client';
+// import elasticsearch from '../../lib/elasticsearch';
+import prisma from '../../lib/prisma';
 
 const router = new Router({
   prefix: '/search',
 });
 
+let taxonomiesByCode: any;
+let taxonomiesByName: any;
+
 /**
  * Build elasticsearch queries, filter out duplicates, and send back to client
  */
 router.get('/', async (ctx) => {
-  const { q, taxonomies, limit = 300, skip = 0, lat, lon, radius } = ctx.query;
-  const min_score = 3;
-  const queries = [];
-  const index = 'results';
-
-  if (taxonomies != null) {
-    const splitTerms = (taxonomies as string).split(',') ?? [''];
-
-    for (const term of splitTerms) {
-      const body = {
-        from: skip,
-        size: limit,
-        query: {
-          bool: {
-            must: {
-              match_phrase_prefix: {
-                taxonomy_code: {
-                  query: term,
-                },
-              },
-            },
-          },
-        },
-      };
-
-      // Apply geo shape filter when lat and lon are available
-      if (lon && lat) {
-        // @ts-ignore
-        body.query.bool.filter = [
-          {
-            geo_shape: {
-              service_area_shape: {
-                shape: {
-                  type: 'point',
-                  coordinates: [
-                    parseFloat(lon as string),
-                    parseFloat(lat as string),
-                  ],
-                },
-                relation: 'intersects',
-              },
-            },
-          },
-        ];
-
-        // @ts-ignore
-        body.sort = [
-          {
-            _geo_distance: {
-              location: {
-                lat: parseFloat(lat as string),
-                lon: parseFloat(lon as string),
-              },
-              order: 'asc',
-              unit: 'km',
-              mode: 'min',
-              distance_type: 'arc',
-            },
-          },
-        ];
-
-        if (radius && parseInt(radius as string) > 0) {
-          // @ts-ignore
-          body.query.bool.filter.push({
-            geo_distance: {
-              distance: radius + 'miles',
-              location: {
-                lat: parseFloat(lat as string),
-                lon: parseFloat(lon as string),
-              },
-            },
-          });
-        }
-      }
-
-      queries.push({
-        index: index,
-      });
-      queries.push(body);
+  if (!taxonomiesByCode) {
+    const arr = await prisma.taxonomy.findMany();
+    taxonomiesByCode = {};
+    taxonomiesByName = {};
+    for (const t of arr) {
+      taxonomiesByCode[t.Code__c] = t;
+      taxonomiesByName[t.Name] = t;
     }
-  } else {
-    const body = {
-      from: skip,
-      size: limit,
-      min_score,
-      query: {
-        bool: {
-          must: {
-            multi_match: {
-              query: q,
-              analyzer: 'standard',
-              operator: 'AND',
-              fields: [
-                'organization_name',
-                'service_name',
-                'location_name',
-                'service_description',
-                'service_short_description',
-                'taxonomy_term',
-                'taxonomy_code',
-              ],
-            },
-          },
-        },
+  }
+
+  // const { taxonomies, lat, lon, radius } = ctx.query;
+  const { taxonomies } = ctx.query;
+  const q = (ctx.query.q as string)?.trim();
+  // const { q, taxonomies, query_type, limit = 300, skip = 0, lat, lon, radius } = ctx.query;
+  // const min_score = 3;
+  // const queries = [];
+  // const index = 'results';
+
+  const results = [];
+  let programs: program[];
+
+  if (q) {
+    programs = await prisma.program.findMany({
+      where: {
+        OR: [
+          { Name: { contains: q as string } },
+          { AKA_Name__c: { contains: q as string } },
+          { Description__c: { contains: q as string } },
+          { Service_Description__c: { contains: q as string } },
+        ],
       },
-    };
+    });
+  } else {
+    programs = await prisma.program.findMany();
+  }
 
-    // Apply geo shape filter when lat and lon are available
-    if (lon && lat) {
-      // @ts-ignore
-      body.query.bool.filter = [
-        {
-          geo_shape: {
-            service_area_shape: {
-              shape: {
-                type: 'point',
-                coordinates: [
-                  parseFloat(lon as string),
-                  parseFloat(lat as string),
-                ],
-              },
-              relation: 'intersects',
-            },
-          },
-        },
-      ];
-
-      // @ts-ignore
-      body.sort = [
-        '_score',
-        {
-          _geo_distance: {
-            location: {
-              lat: parseFloat(lat as string),
-              lon: parseFloat(lon as string),
-            },
-            order: 'asc',
-            unit: 'km',
-            mode: 'min',
-            distance_type: 'arc',
-          },
-        },
-      ];
-
-      if (radius && parseInt(radius as string) > 0) {
-        // @ts-ignore
-        body.query.bool.filter.push({
-          geo_distance: {
-            distance: radius + 'miles',
-            location: {
-              lat: parseFloat(lat as string),
-              lon: parseFloat(lon as string),
-            },
-          },
-        });
+  let filteredPrograms: program[] = [];
+  if (taxonomies) {
+    const taxonomyCodes = (taxonomies as string).split(',').map((s) => s.trim());
+    const filteredTaxonomies: taxonomy[] = [];
+    for (const code of taxonomyCodes) {
+      if (taxonomiesByCode[code]) {
+        filteredTaxonomies.push(taxonomiesByCode[code]);
       }
     }
 
-    queries.push({
-      index: index,
-    });
-    queries.push(body);
-  }
+    const taxonomiesByName: any = {};
+    for (const t of filteredTaxonomies) {
+      taxonomiesByName[t.Name] = t;
+    }
 
-  let geoResults;
-  try {
-    geoResults = await elasticsearch.msearch({ body: queries });
-  } catch (err) {
-    console.log(err);
-  }
-  const cache: KeyValue = {
-    hits: [],
-    existing: {},
-  };
-
-  // Filter out duplicate records, keep the same sorting
-  for (const response of geoResults?.body?.responses ?? []) {
-    for (const hit of response?.hits?.hits ?? []) {
-      if (cache.existing[hit._id] != null) {
+    for (const program of programs) {
+      if (!program.Program_Taxonomies__c?.length) {
         continue;
       }
+      const progTaxList = program.Program_Taxonomies__c.split(',').map((s) => s.trim());
 
-      cache.existing[hit._id] = hit;
-      cache.hits.push(hit);
+      for (const progTaxName of progTaxList) {
+        if (taxonomiesByName[progTaxName]) {
+          filteredPrograms.push(program);
+        }
+      }
     }
+  } else {
+    filteredPrograms = programs;
   }
 
-  ctx.body = cache?.hits ?? [];
+  const programIds = filteredPrograms.map((p) => p.Id);
+  const sitePrograms = await prisma.site_program.findMany({
+    where: {
+      Program__c: {
+        in: programIds,
+      },
+    },
+  });
+
+  const siteIds = sitePrograms.map((sp) => sp.Site__c);
+  const siteProgramMap: any = {};
+  for (const sp of sitePrograms) {
+    if (!siteProgramMap[sp.Program__c]) {
+      siteProgramMap[sp.Program__c] = [];
+    }
+    siteProgramMap[sp.Program__c].push(sp);
+  }
+
+  const sites = await prisma.site.findMany({
+    where: {
+      Id: {
+        in: siteIds,
+      },
+    },
+  });
+
+  const siteMap: any = {};
+  for (const s of sites) {
+    siteMap[s.Id] = s;
+  }
+
+  const agencyIds = filteredPrograms.map((p) => p.Account__c);
+  const agencies = await prisma.agency.findMany({
+    where: { Id: { in: agencyIds } },
+  });
+  const agencyMap: any = {};
+  for (const a of agencies) {
+    agencyMap[a.Id] = a.Name;
+  }
+
+  for (const p of filteredPrograms) {
+    const spList = siteProgramMap[p.Id];
+    if (!spList?.length) {
+      continue;
+    }
+    const site = siteMap[spList[0].Site__c];
+    if (!site) {
+      continue;
+    }
+    let physicalAddress = '';
+    let locationLat = '';
+    let locationLon = '';
+    let street = site.Street_Number__c;
+    if (street && site.City__c) {
+      if (site.Suite__c) {
+        street += ` ${site.Suite__c}`;
+      }
+      physicalAddress = street;
+      if (site.Location__Latitude__s && site.Location__Longitude__s) {
+        locationLat = site.Location__Latitude__s;
+        locationLon = site.Location__Longitude__s;
+      }
+    }
+
+    results.push({
+      _source: {
+        id: p.Id, //
+        service_name: p.Name, // - service_name, location_name, organization_name
+        location_name: agencyMap[p.Account__c],
+        physical_address: physicalAddress,
+        physical_address_city: site.City__c,
+        physical_address_state: site.State__c,
+        physical_address_postal_code: site.Zip_Code__c,
+        location_latitude: locationLat,
+        location_longitude: locationLon,
+        service_short_description: p.Service_Description__c, // - service_short_description
+        phone: p.Program_Phone__c, //
+        website: p.Website__c, //
+      },
+      _score: 1, //
+    });
+  }
+
+  ctx.body = results;
 });
 
 export default router;
