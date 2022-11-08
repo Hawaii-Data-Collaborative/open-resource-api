@@ -51,11 +51,11 @@ router.get('/:id', async (ctx) => {
     schedule: program.Hours__c,
     applicationProcess: '',
     organizationName: agency.Name,
-    organizationDescription: agency.Description
+    organizationDescription: agency.Description,
   };
 
   const sitePrograms = await prisma.site_program.findMany({ where: { Program__c: program?.Id } });
-  const siteIds = sitePrograms.map(s => s.Id);
+  const siteIds = sitePrograms.map((s) => s.Site__c);
   const sites = await prisma.site.findMany({ where: { Id: { in: siteIds } } });
   const siteMap: any = {};
   for (const s of sites) {
