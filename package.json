@@ -2,8 +2,9 @@
   "name": "search-211-api",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node --inspect=0.0.0.0:9249 .",
-    "dev": "nodemon -r dotenv/config src/index.ts",
+    "start": "node -r dotenv/config .",
+    "dev": "node --inspect=0.0.0.0:9249 -r dotenv/config .",
+    "devOld": "nodemon -r dotenv/config src/index.ts",
     "prebuild": "node scripts/prebuild",
     "build": "tsc --build src"
   },
