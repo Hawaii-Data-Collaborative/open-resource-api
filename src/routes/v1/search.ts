@@ -69,7 +69,7 @@ router.get('/', async (ctx) => {
       if (!program.Program_Taxonomies__c?.length) {
         continue;
       }
-      const progTaxList = program.Program_Taxonomies__c.split(',').map((s) => s.trim());
+      const progTaxList = program.Program_Taxonomies__c.split(';').map((s) => s.trim());
 
       for (const progTaxName of progTaxList) {
         if (taxonomiesByName[progTaxName]) {

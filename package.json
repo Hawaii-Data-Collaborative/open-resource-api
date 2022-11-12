@@ -6,7 +6,8 @@
     "dev": "node --inspect=0.0.0.0:9249 -r dotenv/config .",
     "devOld": "nodemon -r dotenv/config src/index.ts",
     "prebuild": "node scripts/prebuild",
-    "build": "tsc --build src"
+    "build": "tsc --build src",
+    "watch": "tsc --watch --project src/tsconfig.json"
   },
   "license": "GNU GPLv3",
   "devDependencies": {

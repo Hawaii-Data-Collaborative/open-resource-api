@@ -4,7 +4,10 @@
     "es6": true,
     "node": true
   },
-  "plugins": ["@typescript-eslint", "prettier"],
+  "plugins": [
+    "@typescript-eslint",
+    "prettier"
+  ],
   "extends": [
     "eslint:recommended",
     "plugin:import/errors",
@@ -19,12 +22,22 @@
   },
   "rules": {
     "prettier/prettier": "off",
-    "@typescript-eslint/no-unused-vars": ["error"],
+    "@typescript-eslint/no-unused-vars": [
+      "error"
+    ],
     "no-irregular-whitespace": "off",
     "linebreak-style": "off",
-    "semi": ["error", "always"],
-    "eol-last": ["error", "always"],
-    "quotes": ["error", "single"],
+    "semi": [
+      0
+    ],
+    "eol-last": [
+      "error",
+      "always"
+    ],
+    "quotes": [
+      "error",
+      "single"
+    ],
     "no-unused-vars": "off",
     "no-undef": "off",
     "import/no-unresolved": "off",
