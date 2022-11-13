@@ -31,7 +31,7 @@ async function replaceAsteriskSeparators() {
 }
 
 async function replaceCommaSeparators() {
-  const taxonomiesWithCommas = await prisma.program.findMany({
+  const taxonomiesWithCommas = await prisma.taxonomy.findMany({
     where: { Name: { contains: ',' } }
   })
 
@@ -74,9 +74,28 @@ async function replaceCommaSeparators() {
   console.log('[replaceCommaSeparators] updated %s programs', programs.length)
 }
 
+async function fixNewlines() {
+  const programs = await prisma.program.findMany({
+    where: { Service_Description__c: { contains: '\\n' } }
+  })
+
+  for (const p of programs) {
+    const oldValue = p.Service_Description__c
+    const newValue = p.Service_Description__c.replaceAll('\\n', '\n')
+    await prisma.program.update({
+      data: { Service_Description__c: newValue },
+      where: { Id: p.Id }
+    })
+    console.log('[fixNewlines] updated program %s Service_Description__c from %s to %s', p.Id, oldValue, newValue)
+  }
+
+  console.log('[fixNewlines] updated %s programs', programs.length)
+}
+
 async function main() {
   await replaceAsteriskSeparators()
   await replaceCommaSeparators()
+  await fixNewlines()
 }
 
 main()

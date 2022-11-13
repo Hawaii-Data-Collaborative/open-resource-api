@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:../db.sqlite3"
+  url      = "file:../db/db.sqlite3"
 }
 
 model accessibility_for_disabilities {
