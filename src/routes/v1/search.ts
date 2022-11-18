@@ -74,6 +74,7 @@ router.get('/', async (ctx) => {
       for (const progTaxName of progTaxList) {
         if (taxonomiesByName[progTaxName]) {
           filteredPrograms.push(program);
+          break;
         }
       }
     }
@@ -81,7 +82,7 @@ router.get('/', async (ctx) => {
     filteredPrograms = programs;
   }
 
-  const programIds = filteredPrograms.map((p) => p.Id);
+  const programIds = filteredPrograms.map((p) => p.id);
   const sitePrograms = await prisma.site_program.findMany({
     where: {
       Program__c: {
@@ -101,7 +102,7 @@ router.get('/', async (ctx) => {
 
   const sites = await prisma.site.findMany({
     where: {
-      Id: {
+      id: {
         in: siteIds,
       },
     },
@@ -109,20 +110,20 @@ router.get('/', async (ctx) => {
 
   const siteMap: any = {};
   for (const s of sites) {
-    siteMap[s.Id] = s;
+    siteMap[s.id] = s;
   }
 
   const agencyIds = filteredPrograms.map((p) => p.Account__c);
   const agencies = await prisma.agency.findMany({
-    where: { Id: { in: agencyIds } },
+    where: { id: { in: agencyIds } },
   });
   const agencyMap: any = {};
   for (const a of agencies) {
-    agencyMap[a.Id] = a.Name;
+    agencyMap[a.id] = a.Name;
   }
 
   for (const p of filteredPrograms) {
-    const spList = siteProgramMap[p.Id];
+    const spList = siteProgramMap[p.id];
     if (!spList?.length) {
       continue;
     }
@@ -147,7 +148,7 @@ router.get('/', async (ctx) => {
 
     results.push({
       _source: {
-        id: p.Id, //
+        id: p.id, //
         service_name: p.Name, // - service_name, location_name, organization_name
         location_name: agencyMap[p.Account__c],
         physical_address: physicalAddress,

@@ -17,11 +17,11 @@ async function replaceAsteriskSeparators() {
     const newValue = p.Program_Taxonomies__c.replaceAll(badSeparator, GOOD_SEPARATOR)
     await prisma.program.update({
       data: { Program_Taxonomies__c: newValue },
-      where: { Id: p.Id }
+      where: { id: p.id }
     })
     console.log(
       '[replaceAsteriskSeparators] updated program %s Program_Taxonomies__c from %s to %s',
-      p.Id,
+      p.id,
       oldValue,
       newValue
     )
@@ -61,11 +61,11 @@ async function replaceCommaSeparators() {
       .join(GOOD_SEPARATOR)
     await prisma.program.update({
       data: { Program_Taxonomies__c: newValue },
-      where: { Id: p.Id }
+      where: { id: p.id }
     })
     console.log(
       '[replaceCommaSeparators] updated program %s Program_Taxonomies__c from %s to %s',
-      p.Id,
+      p.id,
       oldValue,
       newValue
     )
@@ -84,9 +84,9 @@ async function fixNewlines() {
     const newValue = p.Service_Description__c.replaceAll('\\n', '\n')
     await prisma.program.update({
       data: { Service_Description__c: newValue },
-      where: { Id: p.Id }
+      where: { id: p.id }
     })
-    console.log('[fixNewlines] updated program %s Service_Description__c from %s to %s', p.Id, oldValue, newValue)
+    console.log('[fixNewlines] updated program %s Service_Description__c from %s to %s', p.id, oldValue, newValue)
   }
 
   console.log('[fixNewlines] updated %s programs', programs.length)

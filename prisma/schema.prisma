@@ -348,7 +348,7 @@ model taxonomy_term {
 }
 
 model agency {
-  Id                                  String @id
+  id                                  String @id
   IsDeleted                           String
   MasterRecordId                      String
   Name                                String
@@ -479,7 +479,7 @@ model agency {
 }
 
 model program {
-  Id                                  String @id
+  id                                  String @id
   OwnerId                             String
   IsDeleted                           String
   Name                                String
@@ -571,7 +571,7 @@ model program {
 }
 
 model program_service {
-  Id                           String @id
+  id                           String @id
   IsDeleted                    String
   Name                         String
   CreatedDate                  String
@@ -594,7 +594,7 @@ model program_service {
 }
 
 model site {
-  Id                                  String @id
+  id                                  String @id
   IsDeleted                           String
   Name                                String
   CreatedDate                         String
@@ -714,7 +714,7 @@ model site {
 }
 
 model site_program {
-  Id                             String @id
+  id                             String @id
   IsDeleted                      String
   Name                           String
   CreatedDate                    String
@@ -777,7 +777,7 @@ model site_program {
 }
 
 model taxonomy {
-  Id                                       String @id
+  id                                       String @id
   OwnerId                                  String
   IsDeleted                                String
   Name                                     String
@@ -823,4 +823,13 @@ model suggestion {
   taxonomies String
   createdAt  String?
   updatedAt  String?
+}
+
+model user_activity {
+  id        Int     @id @default(autoincrement())
+  userId    String
+  event     String
+  data      String?
+  createdAt String?
+  updatedAt String?
 }

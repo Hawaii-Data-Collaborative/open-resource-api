@@ -34,11 +34,11 @@ router.get('/:id', async (ctx) => {
 
   // ctx.body = serviceAtLocation;
 
-  const program = await prisma.program.findFirst({ where: { Id: ctx.params.id }, rejectOnNotFound: true });
-  const agency = await prisma.agency.findFirst({ where: { Id: program.Account__c }, rejectOnNotFound: true });
+  const program = await prisma.program.findFirst({ where: { id: ctx.params.id }, rejectOnNotFound: true });
+  const agency = await prisma.agency.findFirst({ where: { id: program.Account__c }, rejectOnNotFound: true });
 
   const result: any = {
-    id: program.Id,
+    id: program.id,
     title: `${program.Name} at ${agency.Name}`,
     description: program.Service_Description__c,
     phone: program.Program_Phone__c,
@@ -54,12 +54,12 @@ router.get('/:id', async (ctx) => {
     organizationDescription: agency.Description,
   };
 
-  const sitePrograms = await prisma.site_program.findMany({ where: { Program__c: program?.Id } });
+  const sitePrograms = await prisma.site_program.findMany({ where: { Program__c: program?.id } });
   const siteIds = sitePrograms.map((s) => s.Site__c);
-  const sites = await prisma.site.findMany({ where: { Id: { in: siteIds } } });
+  const sites = await prisma.site.findMany({ where: { id: { in: siteIds } } });
   const siteMap: any = {};
   for (const s of sites) {
-    siteMap[s.Id] = s;
+    siteMap[s.id] = s;
   }
 
   for (const sp of sitePrograms) {
