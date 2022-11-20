@@ -76,17 +76,34 @@ async function replaceCommaSeparators() {
 
 async function fixNewlines() {
   const programs = await prisma.program.findMany({
-    where: { Service_Description__c: { contains: '\\n' } }
+    where: {
+      OR: [{ Service_Description__c: { contains: '\\n' } }, { Hours__c: { contains: '\\n' } }]
+    }
   })
 
   for (const p of programs) {
-    const oldValue = p.Service_Description__c
-    const newValue = p.Service_Description__c.replaceAll('\\n', '\n')
+    const oldValue1 = p.Service_Description__c
+    const newValue1 = p.Service_Description__c.replaceAll('\\n', '\n')
+
+    const oldValue2 = p.Hours__c
+    const newValue2 = p.Hours__c.replaceAll('\\n', '\n')
+
     await prisma.program.update({
-      data: { Service_Description__c: newValue },
+      data: {
+        Service_Description__c: newValue1,
+        Hours__c: newValue2
+      },
       where: { id: p.id }
     })
-    console.log('[fixNewlines] updated program %s Service_Description__c from %s to %s', p.id, oldValue, newValue)
+
+    console.log(
+      '[fixNewlines] updated program %s\n  old Service_Description__c: %s\n  new Service_Description__c: %s\n  old Hours__c: %s\n  new Hours__c: %s',
+      p.id,
+      oldValue1,
+      newValue1,
+      oldValue2,
+      newValue2
+    )
   }
 
   console.log('[fixNewlines] updated %s programs', programs.length)
