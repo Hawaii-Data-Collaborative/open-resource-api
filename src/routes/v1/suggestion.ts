@@ -1,14 +1,17 @@
-import Router from '@koa/router';
-
-import prisma from '../../lib/prisma';
+import Router from '@koa/router'
+import prisma from '../../lib/prisma'
+import { getTrendingSearches } from '../../services/trends'
 
 const router = new Router({
-  prefix: '/suggestion',
-});
+  prefix: '/suggestion'
+})
 
 router.get('/', async (ctx) => {
-  const suggestions = await prisma.suggestion.findMany();
-  ctx.body = suggestions;
-});
+  let suggestions = await prisma.suggestion.findMany({ select: { id: true, text: true, taxonomies: true } })
+  suggestions = suggestions.map((s) => ({ ...s, group: 'Taxonomy' }))
+  let trendingSearches = await getTrendingSearches()
+  trendingSearches = trendingSearches.slice(0, 10).map((text, i) => ({ id: -(i + 1), text, group: 'Trending' }))
+  ctx.body = [...trendingSearches, ...suggestions]
+})
 
-export default router;
+export default router
