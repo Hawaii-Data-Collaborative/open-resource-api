@@ -9,8 +9,10 @@ const router = new Router({
 router.get('/', async (ctx) => {
   let suggestions = await prisma.suggestion.findMany({ select: { id: true, text: true, taxonomies: true } })
   suggestions = suggestions.map((s) => ({ ...s, group: 'Taxonomy' }))
-  let trendingSearches = await getTrendingSearches()
-  trendingSearches = trendingSearches.slice(0, 10).map((text, i) => ({ id: -(i + 1), text, group: 'Trending' }))
+  const trendingSearchTextList = await getTrendingSearches()
+  const trendingSearches = trendingSearchTextList
+    .slice(0, 10)
+    .map((text, i) => ({ id: -(i + 1), text, group: 'Trending' }))
   ctx.body = [...trendingSearches, ...suggestions]
 })
 

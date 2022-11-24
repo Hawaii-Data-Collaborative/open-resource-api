@@ -1,12 +1,14 @@
-import dayjs, { ManipulateType } from 'dayjs'
+import dayjs from 'dayjs'
 import db from '../lib/db'
+import prisma from '../lib/prisma'
 
 // eslint-disable-next-line quotes
 const CREATED_DATE_AS_INT = `cast(replace(substr("createdAt", 0, 11), '-', '') as integer)`
-const MIN_COUNT = 3
 
-export async function getTrendingSearches(range: ManipulateType = 'month') {
-  const start = Number(dayjs().subtract(1, range).format('YYYYMMDD'))
+export async function getTrendingSearches() {
+  const settings = await prisma.settings.findUnique({ where: { id: 1 }, rejectOnNotFound: true })
+  console.log('[getTrendingSearches] settings=%s', settings)
+  const start = await getTrendStartDateAsInt(settings)
   const query = `select * from "user_activity" where "event" = 'Search' and ${CREATED_DATE_AS_INT} >= ${start}`
   const rows = (await db.query(query)) as any[]
   const searchTextToCount: any = {}
@@ -27,9 +29,21 @@ export async function getTrendingSearches(range: ManipulateType = 'month') {
 
   const rv = []
   for (const [text, count] of Object.entries(searchTextToCount)) {
-    if ((count as number) >= MIN_COUNT) {
+    if ((count as number) >= settings.trendingMinCount) {
       rv.push(text)
     }
   }
   return rv
+}
+
+async function getTrendStartDateAsInt(settings: any) {
+  let unit = settings.trendingRange || 'month'
+  let value = 1
+  if (unit === 'quarter') {
+    unit = 'month'
+    value = 3
+  }
+  const start = Number(dayjs().subtract(value, unit).format('YYYYMMDD'))
+  console.log('[getTrendStartDateAsInt] start=%s', start)
+  return start
 }
