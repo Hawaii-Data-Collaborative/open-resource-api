@@ -479,7 +479,8 @@ model agency {
 }
 
 model program {
-  id                                  String @id
+  id                                  String  @id
+  keywords                            String?
   OwnerId                             String
   IsDeleted                           String
   Name                                String
