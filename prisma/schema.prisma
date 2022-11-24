@@ -834,3 +834,10 @@ model user_activity {
   createdAt String?
   updatedAt String?
 }
+
+model settings {
+  id               Int    @id @default(autoincrement())
+  trendingRange    String
+  trendingMinCount Int
+  createdAt        String
+}
