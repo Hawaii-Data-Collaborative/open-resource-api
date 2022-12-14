@@ -32,6 +32,9 @@ export async function getTrendingSearches() {
     if ((count as number) >= settings.trendingMinCount) {
       rv.push(text)
     }
+    if (rv.length > settings.trendingMaxShow) {
+      break
+    }
   }
   return rv
 }

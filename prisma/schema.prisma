@@ -839,5 +839,33 @@ model settings {
   id               Int    @id @default(autoincrement())
   trendingRange    String
   trendingMinCount Int
+  trendingMaxShow  Int
   createdAt        String
+}
+
+model category {
+  id        Int     @id
+  parentId  Int?
+  name      String
+  icon      String?
+  active    Boolean
+  createdAt String?
+  updatedAt String?
+}
+
+model user {
+  id        Int     @id
+  email     String
+  password  String
+  lastLogin String?
+  createdAt String?
+  updatedAt String?
+}
+
+model session {
+  id        Int     @id
+  userId    Int
+  data      String?
+  createdAt String?
+  updatedAt String?
 }
