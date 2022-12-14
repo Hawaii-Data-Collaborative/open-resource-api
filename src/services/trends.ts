@@ -7,9 +7,8 @@ const CREATED_DATE_AS_INT = `cast(replace(substr("createdAt", 0, 11), '-', '') a
 
 export async function getTrendingSearches() {
   const settings = await prisma.settings.findUnique({ where: { id: 1 }, rejectOnNotFound: true })
-  console.log('[getTrendingSearches] settings=%s', settings)
   const start = await getTrendStartDateAsInt(settings)
-  const query = `select * from "user_activity" where "event" = 'Search' and ${CREATED_DATE_AS_INT} >= ${start}`
+  const query = `select * from "user_activity" where "event" = 'Search.Keyword' and ${CREATED_DATE_AS_INT} >= ${start}`
   const rows = (await db.query(query)) as any[]
   const searchTextToCount: any = {}
   for (const row of rows) {
@@ -29,11 +28,11 @@ export async function getTrendingSearches() {
 
   const rv = []
   for (const [text, count] of Object.entries(searchTextToCount)) {
+    if (rv.length >= settings.trendingMaxShow) {
+      break
+    }
     if ((count as number) >= settings.trendingMinCount) {
       rv.push(text)
-    }
-    if (rv.length > settings.trendingMaxShow) {
-      break
     }
   }
   return rv
@@ -47,6 +46,5 @@ async function getTrendStartDateAsInt(settings: any) {
     value = 3
   }
   const start = Number(dayjs().subtract(value, unit).format('YYYYMMDD'))
-  console.log('[getTrendStartDateAsInt] start=%s', start)
   return start
 }
