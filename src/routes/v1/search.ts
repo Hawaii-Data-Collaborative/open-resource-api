@@ -1,6 +1,6 @@
 import Router from '@koa/router';
 import { program, taxonomy } from '@prisma/client';
-// import elasticsearch from '../../lib/elasticsearch';
+import meilisearch from '../../lib/meilisearch';
 import prisma from '../../lib/prisma';
 
 const router = new Router({
@@ -36,7 +36,7 @@ router.get('/', async (ctx) => {
   let programs: program[];
 
   if (q) {
-    programs = await prisma.program.findMany({
+    const dbPrograms = await prisma.program.findMany({
       where: {
         OR: [
           { Name: { contains: q as string } },
@@ -45,7 +45,15 @@ router.get('/', async (ctx) => {
           { Service_Description__c: { contains: q as string } },
         ],
       },
+      take: 100
     });
+
+    const res = await meilisearch.index('program').search(q, { limit: 100 })
+    programs = res.hits as any
+
+    console.log('q = %s', q)
+    console.log('  db ids = %j', dbPrograms.map(p=>p.id))
+    console.log('  ms ids = %j', programs.map(p=>p.id))
   } else {
     programs = await prisma.program.findMany();
   }
