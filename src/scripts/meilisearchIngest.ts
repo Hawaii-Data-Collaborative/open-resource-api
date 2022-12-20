@@ -1,3 +1,4 @@
+import { searchableAttributes } from '../constants'
 import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
 import stopWords from './stopWords.json'
@@ -41,8 +42,10 @@ async function processPrograms() {
   const index = meilisearch.index('program')
   const task1 = await index.updateStopWords(stopWords.en)
   console.log('[processPrograms] updateStopWords task = %s', JSON.stringify(task1))
-  const task2 = await index.addDocuments(programs)
-  console.log('[processPrograms] addDocuments task = %s', JSON.stringify(task2))
+  const task2 = await index.updateSettings({ searchableAttributes: searchableAttributes.program })
+  console.log('[processPrograms] updateSearchableAttributes task = %s', JSON.stringify(task2))
+  const task3 = await index.addDocuments(programs)
+  console.log('[processPrograms] addDocuments task = %s', JSON.stringify(task3))
 }
 
 async function processSitePrograms() {
