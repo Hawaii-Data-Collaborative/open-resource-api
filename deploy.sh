@@ -8,7 +8,7 @@ cd /var/www/auwsearch.windwardapps.com/open-resource-api
 echo "[deploy] pulling code ..."
 git reset --hard
 echo "[deploy] installing dependencies ..."
-/home/kyle/bin/npm install
+/home/kyle/bin/npm install --production
 echo "[deploy] compiling ..."
 npx prisma generate
 /home/kyle/bin/yarn build

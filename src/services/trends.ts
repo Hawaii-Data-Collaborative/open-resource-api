@@ -1,4 +1,5 @@
-import dayjs from 'dayjs'
+import _ from 'lodash'
+import dayjs from '../lib/dayjs'
 import db from '../lib/db'
 import prisma from '../lib/prisma'
 
@@ -47,4 +48,109 @@ async function getTrendStartDateAsInt(settings: any) {
   }
   const start = Number(dayjs().subtract(value, unit).format('YYYYMMDD'))
   return start
+}
+
+/**
+ * Returns keywords that other users have searched for and have used in
+ * their path to a referral.
+ */
+export async function getRelatedSearches(searchText: string, currentUserId: string) {
+  const searchTimelines = await getSuccessfulSearchTimelines(searchText, currentUserId)
+  const relatedSearches: any[] = []
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  for (const [userId, journeys] of Object.entries(searchTimelines)) {
+    for (const journey of journeys as any[][]) {
+      const skip = !journey.find((ua) => ua.data.terms === searchText)
+      if (skip) continue
+
+      let found = false
+      for (const ua of journey) {
+        if (found) {
+          if (ua.event === 'Search.Keyword' && ua.data.terms) {
+            if (!relatedSearches.includes(ua.data.terms)) {
+              relatedSearches.push(ua.data.terms)
+            }
+          }
+        } else if (ua.event === 'Search.Keyword' && ua.data.terms === searchText) {
+          found = true
+        }
+      }
+    }
+  }
+
+  return relatedSearches
+}
+
+/**
+ * Returns successful searches – keyword searches that led to a referral – in the
+ * shape of `Map<UserId, UserActivity[][]>`.
+ *
+ * The outer array contains an array of "journeys", which is one or more search
+ * activities that ends in a referral activity.
+ */
+export async function getSuccessfulSearchTimelines(searchText: string, currentUserId: string) {
+  searchText = searchText.toLowerCase()
+  const uaListFull: any[] = await prisma.user_activity.findMany({
+    where: {
+      OR: [
+        {
+          event: 'Search.Keyword',
+          userId: {
+            not: currentUserId
+          }
+        },
+        {
+          event: { startsWith: 'Referral' },
+          userId: {
+            not: currentUserId
+          }
+        }
+      ]
+    },
+    orderBy: { createdAt: 'asc' }
+  })
+
+  for (const ua of uaListFull) {
+    ua.data = JSON.parse(ua.data as string)
+    if (ua.data?.terms) {
+      ua.data.terms = ua.data?.terms.trim().toLowerCase()
+    }
+    ua.createdAt = new Date(ua.createdAt)
+  }
+
+  const searchTimelines: any = {}
+  const groups = _.groupBy(uaListFull, 'userId')
+  // eslint-disable-next-line prefer-const
+  for (let [userId, uaList] of Object.entries(groups)) {
+    if (!userId) continue
+    uaList = _.sortBy(uaList, 'createdAt')
+    const journeys = []
+    let journey = []
+    let prevUa
+    for (const ua of uaList) {
+      journey.push(ua)
+
+      if (ua.event.startsWith('Referral')) {
+        // If we find a referral, store the current journey and start a new one.
+        if (journey.length > 1) {
+          journeys.push(journey)
+        }
+        journey = []
+      } else if (prevUa) {
+        // If 60 minutes have passed since the last activity, discard the current journey and start a new one.
+        const minutes = dayjs.duration(ua.createdAt - prevUa.createdAt).asMinutes()
+        if (minutes > 60) {
+          journey = [ua]
+        }
+      }
+
+      prevUa = ua
+    }
+
+    if (journeys.length) {
+      searchTimelines[userId] = journeys
+    }
+  }
+
+  return searchTimelines
 }

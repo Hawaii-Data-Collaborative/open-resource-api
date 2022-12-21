@@ -28,6 +28,20 @@
         "-r",
         "dotenv/config"
       ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest current file",
+      "runtimeExecutable": "./node_modules/.bin/jest",
+      "args": [
+        "${file}"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
     }
   ]
 }
