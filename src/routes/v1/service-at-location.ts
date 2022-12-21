@@ -44,14 +44,20 @@ router.get('/:id', async (ctx) => {
     phone: program.Program_Phone__c,
     website: program.Website__c,
     languages: program.Languages__c,
-    fees: program.Fees__c,
+    fees: program.Fees_Text__c,
     emergencyInfo: '',
     eligibility: program.Eligibility__c,
     email: program.Program_Email__c,
     schedule: program.Hours__c,
-    applicationProcess: '',
+    applicationProcess: program.Intake_Procedure__c,
     organizationName: agency.Name,
     organizationDescription: agency.Description,
+    serviceArea:
+      program.ServiceArea__c == null
+        ? null
+        : program.ServiceArea__c.toLowerCase().includes('all islands')
+        ? 'All islands'
+        : program.ServiceArea__c.replaceAll(';', ', ')
   };
 
   const sitePrograms = await prisma.site_program.findMany({ where: { Program__c: program?.id } });
