@@ -12,6 +12,7 @@
     "meilisearchIngest": "node -r dotenv/config dist/scripts/meilisearchIngest.js",
     "elasticsearchIngest": "node -r dotenv/config dist/scripts/elasticsearchIngest.js",
     "meilisearchUpdateSearchableAttributes": "node -r dotenv/config dist/scripts/meilisearchUpdateSearchableAttributes.js",
+    "meilisearchUpdateStopWords": "node -r dotenv/config dist/scripts/meilisearchUpdateStopWords.js",
     "test": "jest"
   },
   "license": "GNU GPLv3",
