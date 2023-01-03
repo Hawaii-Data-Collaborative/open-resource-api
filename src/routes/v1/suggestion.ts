@@ -11,7 +11,11 @@ router.get('/', async (ctx) => {
   let suggestions = await prisma.suggestion.findMany({ select: { id: true, text: true, taxonomies: true } })
   suggestions = suggestions.map((s) => ({ ...s, group: 'Taxonomy' }))
   const trendingSearchTextList = await getTrendingSearches()
-  const trendingSearches = trendingSearchTextList.map((text, i) => ({ id: -(i + 1), text, group: 'Trending' }))
+  const trendingSearches = trendingSearchTextList.map((text: any, i: number) => ({
+    id: -(i + 1),
+    text,
+    group: 'Trending'
+  }))
   let relatedSearches
   if (searchText && userId) {
     relatedSearches = await getRelatedSearches(searchText as string, userId as string)
