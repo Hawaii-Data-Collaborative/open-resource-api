@@ -836,10 +836,12 @@ model user_activity {
 }
 
 model settings {
-  id               Int    @id @default(autoincrement())
+  id               Int      @id @default(autoincrement())
   trendingRange    String
   trendingMinCount Int
   trendingMaxShow  Int
+  manualTrends     Boolean?
+  trends           String?
   createdAt        String
 }
 
