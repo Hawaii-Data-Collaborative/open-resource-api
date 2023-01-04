@@ -1,4 +1,5 @@
 import { program, taxonomy } from '@prisma/client'
+import _ from 'lodash'
 import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
 
@@ -22,6 +23,16 @@ export async function search({ searchText = '', taxonomies = '' } = {}) {
   if (searchText) {
     const res = await meilisearch.index('program').search(searchText, { limit: 100 })
     programs = res.hits as program[]
+
+    const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 100 })
+    const taxNames = res2.hits.map((t) => t.Name)
+    const programs2 = await prisma.program.findMany({
+      where: {
+        OR: taxNames.map((taxName) => ({ Program_Taxonomies__c: { contains: taxName } }))
+      }
+    })
+
+    programs = _.uniqBy([...programs, ...programs2], 'id')
   } else {
     programs = await prisma.program.findMany()
   }
@@ -36,9 +47,9 @@ export async function search({ searchText = '', taxonomies = '' } = {}) {
       }
     }
 
-    const taxonomiesByName: any = {}
+    const taxonomiesByName2: any = {}
     for (const t of filteredTaxonomies) {
-      taxonomiesByName[t.Name] = t
+      taxonomiesByName2[t.Name] = t
     }
 
     for (const program of programs) {
@@ -48,7 +59,7 @@ export async function search({ searchText = '', taxonomies = '' } = {}) {
       const progTaxList = program.Program_Taxonomies__c.split(';').map((s) => s.trim())
 
       for (const progTaxName of progTaxList) {
-        if (taxonomiesByName[progTaxName]) {
+        if (taxonomiesByName2[progTaxName]) {
           filteredPrograms.push(program)
           break
         }
