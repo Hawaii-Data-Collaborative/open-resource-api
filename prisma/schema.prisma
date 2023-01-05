@@ -819,7 +819,7 @@ model taxonomy {
 }
 
 model suggestion {
-  id         Int     @id
+  id         Int     @id @default(autoincrement())
   text       String
   taxonomies String
   createdAt  String?
@@ -846,9 +846,10 @@ model settings {
 }
 
 model category {
-  id        Int     @id
+  id        Int     @id @default(autoincrement())
   parentId  Int?
   name      String
+  params    String?
   icon      String?
   active    Boolean
   createdAt String?
@@ -856,7 +857,7 @@ model category {
 }
 
 model user {
-  id        Int     @id
+  id        Int     @id @default(autoincrement())
   email     String
   password  String
   lastLogin String?

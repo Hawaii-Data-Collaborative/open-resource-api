@@ -1,5 +1,6 @@
 import Router from '@koa/router'
 
+import category from './category'
 import serviceAtlocation from './service-at-location'
 import place from './place'
 import relatedSearches from './related-searches'
@@ -25,5 +26,6 @@ router.use(organization.routes()).use(organization.allowedMethods())
 router.use(suggestion.routes()).use(suggestion.allowedMethods())
 router.use(userActivity.routes()).use(userActivity.allowedMethods())
 router.use(relatedSearches.routes()).use(relatedSearches.allowedMethods())
+router.use(category.routes()).use(category.allowedMethods())
 
 export default router
