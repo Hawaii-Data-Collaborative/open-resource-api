@@ -1,5 +1,5 @@
 import Router from '@koa/router'
-import prisma from '../../lib/prisma'
+// import prisma from '../../lib/prisma'
 import { getRelatedSearches, getTrendingSearches } from '../../services/trends'
 
 const router = new Router({
@@ -8,8 +8,9 @@ const router = new Router({
 
 router.get('/', async (ctx) => {
   const { searchText, userId } = ctx.query
-  let suggestions = await prisma.suggestion.findMany({ select: { id: true, text: true, taxonomies: true } })
-  suggestions = suggestions.map((s) => ({ ...s, group: 'Taxonomy' }))
+  const suggestions: any[] = []
+  // let suggestions = await prisma.suggestion.findMany({ select: { id: true, text: true, taxonomies: true } })
+  // suggestions = suggestions.map((s) => ({ ...s, group: 'Taxonomy' }))
   const trendingSearchTextList = await getTrendingSearches()
   const trendingSearches = trendingSearchTextList.map((text: any, i: number) => ({
     id: -(i + 1),
