@@ -6,7 +6,7 @@ import prisma from '../lib/prisma'
 let taxonomiesByCode: any
 let taxonomiesByName: any
 
-export async function search({ searchText = '', taxonomies = '' } = {}) {
+export async function search({ searchText = '', taxonomies = '', searchTaxonomyIndex = false } = {}) {
   if (!taxonomiesByCode) {
     const arr = await prisma.taxonomy.findMany()
     taxonomiesByCode = {}
@@ -24,15 +24,17 @@ export async function search({ searchText = '', taxonomies = '' } = {}) {
     const res = await meilisearch.index('program').search(searchText, { limit: 100 })
     programs = res.hits as program[]
 
-    const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 100 })
-    const taxNames = res2.hits.map((t) => t.Name)
-    const programs2 = await prisma.program.findMany({
-      where: {
-        OR: taxNames.map((taxName) => ({ Program_Taxonomies__c: { contains: taxName } }))
-      }
-    })
+    if (searchTaxonomyIndex) {
+      const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 100 })
+      const taxNames = res2.hits.map((t) => t.Name)
+      const programs2 = await prisma.program.findMany({
+        where: {
+          OR: taxNames.map((taxName) => ({ Program_Taxonomies__c: { contains: taxName } }))
+        }
+      })
 
-    programs = _.uniqBy([...programs, ...programs2], 'id')
+      programs = _.uniqBy([...programs, ...programs2], 'id')
+    }
   } else {
     programs = await prisma.program.findMany()
   }
