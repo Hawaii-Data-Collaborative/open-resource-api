@@ -22,3 +22,4 @@ node scripts/copyDataFromSF.js Taxonomy__c taxonomy
 # node scripts/copyDataFromSF.js X211_Agency__c agencyX211C
 
 yarn insertData
+echo `date -Iseconds` > LAST_SYNC
