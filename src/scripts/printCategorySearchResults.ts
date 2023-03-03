@@ -14,7 +14,7 @@ async function main() {
           .map(
             (r) =>
               `${r._source.location_name} at ${r._source.service_name}\n    ${trim(
-                r._source.service_short_description
+                r._source.service_short_description as string
               )}`
           )
           .join('\n  ')}`

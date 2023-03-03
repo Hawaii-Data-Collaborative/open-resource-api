@@ -1,11 +1,11 @@
-import Router from '@koa/router';
-import { site as Site } from '@prisma/client';
+import Router from '@koa/router'
+import { site as Site } from '@prisma/client'
 
-import prisma from '../../lib/prisma';
+import prisma from '../../lib/prisma'
 
 const router = new Router({
-  prefix: '/service-at-location',
-});
+  prefix: '/service-at-location'
+})
 
 router.get('/:id', async (ctx) => {
   // const serviceAtLocation = await prisma.service_at_location.findFirst({
@@ -34,8 +34,8 @@ router.get('/:id', async (ctx) => {
 
   // ctx.body = serviceAtLocation;
 
-  const program = await prisma.program.findFirst({ where: { id: ctx.params.id }, rejectOnNotFound: true });
-  const agency = await prisma.agency.findFirst({ where: { id: program.Account__c }, rejectOnNotFound: true });
+  const program = await prisma.program.findFirst({ where: { id: ctx.params.id }, rejectOnNotFound: true })
+  const agency = await prisma.agency.findFirst({ where: { id: program.Account__c as string }, rejectOnNotFound: true })
 
   const result: any = {
     id: program.id,
@@ -58,43 +58,43 @@ router.get('/:id', async (ctx) => {
         : program.ServiceArea__c.toLowerCase().includes('all islands')
         ? 'All islands'
         : program.ServiceArea__c.replaceAll(';', ', ')
-  };
+  }
 
-  const sitePrograms = await prisma.site_program.findMany({ where: { Program__c: program?.id } });
-  const siteIds = sitePrograms.map((s) => s.Site__c);
-  const sites = await prisma.site.findMany({ where: { id: { in: siteIds } } });
-  const siteMap: any = {};
+  const sitePrograms = await prisma.site_program.findMany({ where: { Program__c: program?.id } })
+  const siteIds = sitePrograms.map((s) => s.Site__c as string)
+  const sites = await prisma.site.findMany({ where: { id: { in: siteIds } } })
+  const siteMap: any = {}
   for (const s of sites) {
-    siteMap[s.id] = s;
+    siteMap[s.id] = s
   }
 
   for (const sp of sitePrograms) {
-    const site: Site = siteMap[sp.Site__c];
+    const site: Site = siteMap[sp.Site__c as string]
     if (site) {
-      let street = site.Street_Number__c;
+      let street = site.Street_Number__c
       if (street && site.City__c) {
         if (site.Suite__c) {
-          street += ` ${site.Suite__c}`;
+          street += ` ${site.Suite__c}`
         }
-        let physicalAddress = street;
+        let physicalAddress = street
         if (site.City__c) {
-          physicalAddress += `, ${site.City__c}`;
+          physicalAddress += `, ${site.City__c}`
           if (site.State__c) {
-            physicalAddress += ` ${site.State__c}`;
+            physicalAddress += ` ${site.State__c}`
             if (site.Zip_Code__c) {
-              physicalAddress += ` ${site.Zip_Code__c}`;
+              physicalAddress += ` ${site.Zip_Code__c}`
             }
           }
         }
-        result.locationName = physicalAddress;
+        result.locationName = physicalAddress
       }
 
       if (site.Location__Latitude__s && site.Location__Longitude__s) {
-        result.locationLat = site.Location__Latitude__s;
-        result.locationLon = site.Location__Longitude__s;
+        result.locationLat = site.Location__Latitude__s
+        result.locationLon = site.Location__Longitude__s
       }
 
-      break;
+      break
     }
   }
 
@@ -116,7 +116,7 @@ router.get('/:id', async (ctx) => {
   // organizationName: result.service.organization.name
   // organizationDescription: result.service.organization.description
 
-  ctx.body = result;
-});
+  ctx.body = result
+})
 
-export default router;
+export default router

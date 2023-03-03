@@ -12,8 +12,8 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
     taxonomiesByCode = {}
     taxonomiesByName = {}
     for (const t of arr) {
-      taxonomiesByCode[t.Code__c] = t
-      taxonomiesByName[t.Name] = t
+      taxonomiesByCode[t.Code__c as string] = t
+      taxonomiesByName[t.Name as string] = t
     }
   }
 
@@ -51,7 +51,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
 
     const taxonomiesByName2: any = {}
     for (const t of filteredTaxonomies) {
-      taxonomiesByName2[t.Name] = t
+      taxonomiesByName2[t.Name as string] = t
     }
 
     for (const program of programs) {
@@ -80,13 +80,13 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
     }
   })
 
-  const siteIds = sitePrograms.map((sp) => sp.Site__c)
+  const siteIds = sitePrograms.map((sp) => sp.Site__c as string)
   const siteProgramMap: any = {}
   for (const sp of sitePrograms) {
-    if (!siteProgramMap[sp.Program__c]) {
-      siteProgramMap[sp.Program__c] = []
+    if (!siteProgramMap[sp.Program__c as string]) {
+      siteProgramMap[sp.Program__c as string] = []
     }
-    siteProgramMap[sp.Program__c].push(sp)
+    siteProgramMap[sp.Program__c as string].push(sp)
   }
 
   const sites = await prisma.site.findMany({
@@ -102,7 +102,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
     siteMap[s.id] = s
   }
 
-  const agencyIds = filteredPrograms.map((p) => p.Account__c)
+  const agencyIds = filteredPrograms.map((p) => p.Account__c as string)
   const agencies = await prisma.agency.findMany({
     where: { id: { in: agencyIds } }
   })
@@ -139,7 +139,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
       _source: {
         id: p.id, //
         service_name: p.Name, // - service_name, location_name, organization_name
-        location_name: agencyMap[p.Account__c],
+        location_name: agencyMap[p.Account__c as string],
         physical_address: physicalAddress,
         physical_address_city: site.City__c,
         physical_address_state: site.State__c,

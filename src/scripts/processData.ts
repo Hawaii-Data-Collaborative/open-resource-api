@@ -14,7 +14,7 @@ async function replaceAsteriskSeparators() {
 
   for (const p of programs) {
     const oldValue = p.Program_Taxonomies__c
-    const newValue = p.Program_Taxonomies__c.replaceAll(badSeparator, GOOD_SEPARATOR)
+    const newValue = (p.Program_Taxonomies__c as string).replaceAll(badSeparator, GOOD_SEPARATOR)
     await prisma.program.update({
       data: { Program_Taxonomies__c: newValue },
       where: { id: p.id }
@@ -46,7 +46,7 @@ async function replaceCommaSeparators() {
   for (const p of programs) {
     let skip = false
     for (const taxWithComma of taxonomiesWithCommas) {
-      if (p.Program_Taxonomies__c.includes(taxWithComma.Name)) {
+      if ((p.Program_Taxonomies__c as string).includes(taxWithComma.Name as string)) {
         skip = true
         break
       }
@@ -56,7 +56,8 @@ async function replaceCommaSeparators() {
     }
 
     const oldValue = p.Program_Taxonomies__c
-    const newValue = p.Program_Taxonomies__c.split(',')
+    const newValue = (p.Program_Taxonomies__c as string)
+      .split(',')
       .map((s) => s.trim())
       .join(GOOD_SEPARATOR)
     await prisma.program.update({
@@ -83,10 +84,10 @@ async function fixNewlines() {
 
   for (const p of programs) {
     const oldValue1 = p.Service_Description__c
-    const newValue1 = p.Service_Description__c.replaceAll('\\n', '\n')
+    const newValue1 = (p.Service_Description__c as string).replaceAll('\\n', '\n')
 
     const oldValue2 = p.Hours__c
-    const newValue2 = p.Hours__c.replaceAll('\\n', '\n')
+    const newValue2 = (p.Hours__c as string).replaceAll('\\n', '\n')
 
     await prisma.program.update({
       data: {
