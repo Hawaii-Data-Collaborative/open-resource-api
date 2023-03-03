@@ -20,3 +20,5 @@ node scripts/copyDataFromSF.js Taxonomy__c taxonomy
 # node scripts/copyDataFromSF.js ServiceChannel serviceChannel
 # node scripts/copyDataFromSF.js ServiceResource serviceResource
 # node scripts/copyDataFromSF.js X211_Agency__c agencyX211C
+
+yarn insertData

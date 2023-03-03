@@ -117,6 +117,17 @@ export async function insertTaxonomyData() {
   console.log('[insertTaxonomyData] inserted %s rows', result.length)
 }
 
+export async function cleanup() {
+  let files = await fs.readdir('./db')
+  files = files.filter((f) => /db\.sqlite3\.\d{8}_\d{4}/.test(f))
+  files.sort()
+  while (files.length > 20) {
+    const file = `./db/${files.shift()}`
+    await fs.rm(file)
+    console.log('[cleanup] deleted %s', file)
+  }
+}
+
 async function main() {
   console.log('[insertData] backing up db...')
   const date = dayjs().format('YYYYMMDD_HHmm')
@@ -128,6 +139,7 @@ async function main() {
   await insertSiteData()
   await insertSiteProgramData()
   await insertTaxonomyData()
+  await cleanup()
 }
 
 if (require.main === module) {
