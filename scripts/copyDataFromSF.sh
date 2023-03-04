@@ -2,6 +2,7 @@
 
 set -e
 
+echo "[copyDataFromSF] start=`date -Iseconds`"
 node scripts/copyDataFromSF.js Account agency
 node scripts/copyDataFromSF.js Program__c program
 node scripts/copyDataFromSF.js Site__c site
@@ -23,3 +24,4 @@ node scripts/copyDataFromSF.js Taxonomy__c taxonomy
 
 yarn insertData
 echo `date -Iseconds` > LAST_SYNC
+echo "[copyDataFromSF] end=`date -Iseconds`"
