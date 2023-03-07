@@ -2,13 +2,17 @@
 
 set -e
 
-echo "[copyDataFromSF] start=`date -Iseconds`"
+print() {
+  echo "[copyDataFromSF] `date -Iseconds` $1"
+}
+
+print "start"
+
 node scripts/copyDataFromSF.js Account agency
 node scripts/copyDataFromSF.js Program__c program
 node scripts/copyDataFromSF.js Site__c site
 node scripts/copyDataFromSF.js Site_Program__c site_program
 node scripts/copyDataFromSF.js Taxonomy__c taxonomy
-
 # node scripts/copyDataFromSF.js Program_Service__c program_service
 # node scripts/copyDataFromSF.js Program__Feed programFeed
 # node scripts/copyDataFromSF.js Program__Share programShare
@@ -22,6 +26,13 @@ node scripts/copyDataFromSF.js Taxonomy__c taxonomy
 # node scripts/copyDataFromSF.js ServiceResource serviceResource
 # node scripts/copyDataFromSF.js X211_Agency__c agencyX211C
 
+print "fetched data from Salesforce"
+
 yarn insertData
+print "loaded data into sqlite"
+
+yarn meilisearchIngest
+print "loaded data into meilisearch"
+
 echo `date -Iseconds` > LAST_SYNC
-echo "[copyDataFromSF] end=`date -Iseconds`"
+print "end"
