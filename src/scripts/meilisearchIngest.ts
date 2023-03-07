@@ -6,6 +6,7 @@ import stopWords from './stopWords.json'
 async function processTaxonomies() {
   const taxonomies = await prisma.taxonomy.findMany()
   const index = meilisearch.index('taxonomy')
+  await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)
   console.log('[processTaxonomies] updateStopWords task = %s', JSON.stringify(task1))
   const task2 = await index.addDocuments(taxonomies)
@@ -15,6 +16,7 @@ async function processTaxonomies() {
 async function processAgencies() {
   const agencies = await prisma.agency.findMany()
   const index = meilisearch.index('agency')
+  await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)
   console.log('[processAgencies] updateStopWords task = %s', JSON.stringify(task1))
   const task2 = await index.addDocuments(agencies)
@@ -31,6 +33,7 @@ async function processSites() {
     }
   }
   const index = meilisearch.index('site')
+  await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)
   console.log('[processSites] updateStopWords task = %s', JSON.stringify(task1))
   const task2 = await index.addDocuments(sites)
@@ -40,6 +43,7 @@ async function processSites() {
 async function processPrograms() {
   const programs = await prisma.program.findMany()
   const index = meilisearch.index('program')
+  await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)
   console.log('[processPrograms] updateStopWords task = %s', JSON.stringify(task1))
   const task2 = await index.updateSettings({ searchableAttributes: searchableAttributes.program })
@@ -51,6 +55,7 @@ async function processPrograms() {
 async function processSitePrograms() {
   const sitePrograms = await prisma.site_program.findMany()
   const index = meilisearch.index('site_program')
+  await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)
   console.log('[processSitePrograms] updateStopWords task = %s', JSON.stringify(task1))
   const task2 = await index.addDocuments(sitePrograms)
@@ -65,11 +70,13 @@ async function main() {
   await processSitePrograms()
 }
 
-main()
-  .then(() => {
-    process.exit(0)
-  })
-  .catch((err) => {
-    console.error(err)
-    process.exit(1)
-  })
+if (require.main === module) {
+  main()
+    .then(() => {
+      process.exit(0)
+    })
+    .catch((err) => {
+      console.error(err)
+      process.exit(1)
+    })
+}
