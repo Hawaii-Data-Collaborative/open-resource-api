@@ -147,7 +147,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
         location_latitude: locationLat,
         location_longitude: locationLon,
         service_short_description: p.Service_Description__c, // - service_short_description
-        phone: p.Program_Phone__c, //
+        phone: p.Program_Phone__c || p.Program_Phone_Text__c, //
         website: p.Website__c //
       },
       _score: 1 //
