@@ -41,7 +41,7 @@ router.get('/:id', async (ctx) => {
     id: program.id,
     title: `${program.Name} at ${agency.Name}`,
     description: program.Service_Description__c,
-    phone: program.Program_Phone__c,
+    phone: program.Program_Phone__c || program.Program_Phone_Text__c,
     website: program.Website__c,
     languages: program.Languages__c,
     fees: program.Fees_Text__c,
