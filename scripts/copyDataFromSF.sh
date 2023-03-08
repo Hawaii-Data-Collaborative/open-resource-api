@@ -31,6 +31,9 @@ print "fetched data from Salesforce"
 yarn insertData
 print "loaded data into sqlite"
 
+yarn processData
+print "postprocessed data in sqlite"
+
 yarn meilisearchIngest
 print "loaded data into meilisearch"
 

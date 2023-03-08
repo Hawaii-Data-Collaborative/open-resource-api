@@ -113,7 +113,7 @@ async function fixNewlines() {
 async function main() {
   await replaceAsteriskSeparators()
   await replaceCommaSeparators()
-  await fixNewlines()
+  // await fixNewlines()
 }
 
 main()
