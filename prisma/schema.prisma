@@ -919,13 +919,16 @@ model user_activity {
 }
 
 model settings {
-  id               Int      @id @default(autoincrement())
-  trendingRange    String
-  trendingMinCount Int
-  trendingMaxShow  Int
-  manualTrends     Boolean?
-  trends           String?
-  createdAt        String
+  id                     Int      @id @default(autoincrement())
+  enableTaxonomySearches Boolean
+  enableTrendingSearches Boolean
+  enableRelatedSearches  Boolean
+  trendingRange          String
+  trendingMinCount       Int
+  trendingMaxShow        Int
+  manualTrends           Boolean?
+  trends                 String?
+  createdAt              String
 }
 
 model category {

@@ -2,12 +2,14 @@ import { program, taxonomy } from '@prisma/client'
 import _ from 'lodash'
 import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
+import { getRelatedSearches, getTrendingSearches } from './trends'
 
 let taxonomiesByCode: any
 let taxonomiesByName: any
 
 export async function search({ searchText = '', taxonomies = '', searchTaxonomyIndex = false } = {}) {
   if (!taxonomiesByCode) {
+    console.log('[search] populating taxonomiesByCode')
     const arr = await prisma.taxonomy.findMany()
     taxonomiesByCode = {}
     taxonomiesByName = {}
@@ -102,7 +104,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
     siteMap[s.id] = s
   }
 
-  const agencyIds = filteredPrograms.map((p) => p.Account__c as string)
+  const agencyIds = _.compact(filteredPrograms.map((p) => p.Account__c as string))
   const agencies = await prisma.agency.findMany({
     where: { id: { in: agencyIds } }
   })
@@ -155,4 +157,40 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
   }
 
   return results
+}
+
+export async function instantSearch(searchText: string, userId: string) {
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } })
+
+  const res1 = await meilisearch.index('program').search(searchText, { limit: 5 })
+  const programs = res1.hits.map((p) => ({ id: p.id, text: p.Name }))
+
+  let taxonomies: any[] = []
+  if (settings?.enableTaxonomySearches) {
+    const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 5 })
+    taxonomies = res2.hits.map((t) => ({ id: t.id, text: t.Name, code: t.Code__c }))
+  }
+
+  let trendingSearches: any[] = []
+  if (settings?.enableTrendingSearches) {
+    trendingSearches = await getTrendingSearches()
+  }
+
+  let relatedSearches: any[] = []
+  if (settings?.enableRelatedSearches && searchText && userId) {
+    relatedSearches = await getRelatedSearches(searchText, userId)
+  }
+
+  const suggestions = {
+    programs: programs.map((p) => ({ ...p, group: 'Programs' })),
+    taxonomies: taxonomies.map((t) => ({ ...t, group: 'Categories / Taxonomies' })),
+    relatedSearches: relatedSearches.map((text, i) => ({ id: -(i + 1001), text, group: 'Related searches' })),
+    trendingSearches: trendingSearches.map((text: any, i: number) => ({
+      id: -(i + 1),
+      text,
+      group: 'Trending'
+    }))
+  }
+
+  return suggestions
 }

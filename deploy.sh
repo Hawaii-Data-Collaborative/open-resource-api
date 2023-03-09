@@ -2,10 +2,6 @@
 
 echo "[deploy] pushing code ..."
 git push beta main
-echo "[deploy] compiling ..."
-yarn build
-echo "[deploy] compressing ..."
-tar czf dist.tar.gz dist
 echo "[deploy] scp'ing ..."
 scp dist.tar.gz wwa:/var/www/auwsearch.windwardapps.com/open-resource-api/
 echo "[deploy] ssh'ing ..."

@@ -1,31 +1,20 @@
 import Router from '@koa/router'
-// import prisma from '../../lib/prisma'
-import { getRelatedSearches, getTrendingSearches } from '../../services/trends'
+import { instantSearch } from '../../services/search'
 
 const router = new Router({
-  prefix: '/suggestion'
+  prefix: '/suggestions'
 })
 
 router.get('/', async (ctx) => {
   const { searchText, userId } = ctx.query
-  const suggestions: any[] = []
-  // let suggestions = await prisma.suggestion.findMany({ select: { id: true, text: true, taxonomies: true } })
-  // suggestions = suggestions.map((s) => ({ ...s, group: 'Taxonomy' }))
-  const trendingSearchTextList = await getTrendingSearches()
-  const trendingSearches = trendingSearchTextList.map((text: any, i: number) => ({
-    id: -(i + 1),
-    text,
-    group: 'Trending'
-  }))
-  let relatedSearches
-  if (searchText && userId) {
-    relatedSearches = await getRelatedSearches(searchText as string, userId as string)
-    relatedSearches = relatedSearches.map((text, i) => ({ id: -(i + 1001), text, group: 'Related searches' }))
-  }
+  const suggestions = await instantSearch(searchText as string, userId as string)
 
-  ctx.body = relatedSearches
-    ? [...relatedSearches, ...trendingSearches, ...suggestions]
-    : [...trendingSearches, ...suggestions]
+  ctx.body = [
+    ...suggestions.programs,
+    ...suggestions.taxonomies,
+    ...suggestions.relatedSearches,
+    ...suggestions.trendingSearches
+  ]
 })
 
 export default router
