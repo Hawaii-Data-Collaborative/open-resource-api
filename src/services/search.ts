@@ -162,12 +162,12 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
 export async function instantSearch(searchText: string, userId: string) {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } })
 
-  const res1 = await meilisearch.index('program').search(searchText, { limit: 5 })
+  const res1 = await meilisearch.index('program').search(searchText, { limit: 10 })
   const programs = res1.hits.map((p) => ({ id: p.id, text: p.Name }))
 
   let taxonomies: any[] = []
   if (settings?.enableTaxonomySearches) {
-    const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 5 })
+    const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 10 })
     taxonomies = res2.hits.map((t) => ({ id: t.id, text: t.Name, code: t.Code__c }))
   }
 
