@@ -23,11 +23,11 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
   let programs: program[]
 
   if (searchText) {
-    const res = await meilisearch.index('program').search(searchText, { limit: 100 })
+    const res = await meilisearch.index('program').search(searchText, { limit: 500 })
     programs = res.hits as program[]
 
     if (searchTaxonomyIndex) {
-      const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 100 })
+      const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 500 })
       const taxNames = res2.hits.map((t) => t.Name)
       const programs2 = await prisma.program.findMany({
         where: {
