@@ -89,7 +89,7 @@ router.get('/:id', async (ctx) => {
         result.locationName = physicalAddress
       }
 
-      if (site.Location__Latitude__s && site.Location__Longitude__s) {
+      if (site.Street_Number__c && site.Location__Latitude__s && site.Location__Longitude__s) {
         result.locationLat = site.Location__Latitude__s
         result.locationLon = site.Location__Longitude__s
       }
