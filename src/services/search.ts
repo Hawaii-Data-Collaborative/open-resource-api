@@ -4,12 +4,14 @@ import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
 import { getRelatedSearches, getTrendingSearches } from './trends'
 
+const debug = require('debug')('app:services:search')
+
 let taxonomiesByCode: any
 let taxonomiesByName: any
 
 export async function search({ searchText = '', taxonomies = '', searchTaxonomyIndex = false } = {}) {
   if (!taxonomiesByCode) {
-    console.log('[search] populating taxonomiesByCode')
+    debug('[search] populating taxonomiesByCode')
     const arr = await prisma.taxonomy.findMany()
     taxonomiesByCode = {}
     taxonomiesByName = {}
@@ -20,22 +22,52 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
   }
 
   const results = []
-  let programs: program[]
+  let programs: program[] = []
 
   if (searchText) {
-    const res = await meilisearch.index('program').search(searchText, { limit: 500 })
-    programs = res.hits as program[]
+    if (taxonomiesByCode[searchText]) {
+      const taxName = (taxonomiesByCode[searchText] as taxonomy).Name
+      debug('[search] search by taxonomy code, searchText=%s taxName=%s', searchText, taxName)
 
-    if (searchTaxonomyIndex) {
-      const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 500 })
-      const taxNames = res2.hits.map((t) => t.Name)
-      const programs2 = await prisma.program.findMany({
+      programs = await prisma.program.findMany({
         where: {
-          OR: taxNames.map((taxName) => ({ Program_Taxonomies__c: { contains: taxName } }))
+          OR: [
+            { Taxonomy_1__c: taxName },
+            { Taxonomy_2__c: taxName },
+            { Taxonomy_3__c: taxName },
+            { Taxonomy_4__c: taxName },
+            { Taxonomy_5__c: taxName },
+            { Taxonomy_6__c: taxName },
+            { Taxonomy_7__c: taxName },
+            { Taxonomy_8__c: taxName },
+            { Taxonomy_9__c: taxName },
+            { Taxonomy_10__c: taxName }
+          ]
         }
       })
 
-      programs = _.uniqBy([...programs, ...programs2], 'id')
+      if (programs.length) {
+        debug('[search] found %s programs', programs.length)
+      } else {
+        debug('[search] no results, fallback to regular search')
+      }
+    }
+
+    if (!programs.length) {
+      const res = await meilisearch.index('program').search(searchText, { limit: 500 })
+      programs = res.hits as program[]
+
+      if (searchTaxonomyIndex) {
+        const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 500 })
+        const taxNames = res2.hits.map((t) => t.Name)
+        const programs2 = await prisma.program.findMany({
+          where: {
+            OR: taxNames.map((taxName) => ({ Program_Taxonomies__c: { contains: taxName } }))
+          }
+        })
+
+        programs = _.uniqBy([...programs, ...programs2], 'id')
+      }
     }
   } else {
     programs = await prisma.program.findMany()
