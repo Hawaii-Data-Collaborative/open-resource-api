@@ -4,7 +4,7 @@ import prisma from '../lib/prisma'
 import stopWords from './stopWords.json'
 
 async function processTaxonomies() {
-  const taxonomies = await prisma.taxonomy.findMany()
+  const taxonomies = await prisma.taxonomy.findMany({ where: { Status__c: { not: 'Inactive' } } })
   const index = meilisearch.index('taxonomy')
   await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)
@@ -14,7 +14,7 @@ async function processTaxonomies() {
 }
 
 async function processAgencies() {
-  const agencies = await prisma.agency.findMany()
+  const agencies = await prisma.agency.findMany({ where: { Status__c: { not: 'Inactive' } } })
   const index = meilisearch.index('agency')
   await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)
@@ -24,7 +24,7 @@ async function processAgencies() {
 }
 
 async function processSites() {
-  const sites = await prisma.site.findMany()
+  const sites = await prisma.site.findMany({ where: { Status__c: { not: 'Inactive' } } })
   for (const site of sites) {
     const tmp = site as any
     tmp._geo = {
@@ -41,7 +41,7 @@ async function processSites() {
 }
 
 async function processPrograms() {
-  const programs = await prisma.program.findMany()
+  const programs = await prisma.program.findMany({ where: { Status__c: { not: 'Inactive' } } })
   const index = meilisearch.index('program')
   await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)

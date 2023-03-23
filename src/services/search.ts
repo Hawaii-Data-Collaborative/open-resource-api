@@ -12,7 +12,7 @@ let taxonomiesByName: any
 export async function search({ searchText = '', taxonomies = '', searchTaxonomyIndex = false } = {}) {
   if (!taxonomiesByCode) {
     debug('[search] populating taxonomiesByCode')
-    const arr = await prisma.taxonomy.findMany()
+    const arr = await prisma.taxonomy.findMany({ where: { Status__c: { not: 'Inactive' } } })
     taxonomiesByCode = {}
     taxonomiesByName = {}
     for (const t of arr) {
@@ -31,6 +31,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
 
       programs = await prisma.program.findMany({
         where: {
+          Status__c: { not: 'Inactive' },
           OR: [
             { Taxonomy_1__c: taxName },
             { Taxonomy_2__c: taxName },
@@ -62,6 +63,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
         const taxNames = res2.hits.map((t) => t.Name)
         const programs2 = await prisma.program.findMany({
           where: {
+            Status__c: { not: 'Inactive' },
             OR: taxNames.map((taxName) => ({ Program_Taxonomies__c: { contains: taxName } }))
           }
         })
@@ -70,7 +72,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
       }
     }
   } else {
-    programs = await prisma.program.findMany()
+    programs = await prisma.program.findMany({ where: { Status__c: { not: 'Inactive' } } })
   }
 
   let filteredPrograms: program[] = []
@@ -125,6 +127,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
 
   const sites = await prisma.site.findMany({
     where: {
+      Status__c: { not: 'Inactive' },
       id: {
         in: siteIds
       }
@@ -138,7 +141,10 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
 
   const agencyIds = _.compact(filteredPrograms.map((p) => p.Account__c as string))
   const agencies = await prisma.agency.findMany({
-    where: { id: { in: agencyIds } }
+    where: {
+      Status__c: { not: 'Inactive' },
+      id: { in: agencyIds }
+    }
   })
   const agencyMap: any = {}
   for (const a of agencies) {
