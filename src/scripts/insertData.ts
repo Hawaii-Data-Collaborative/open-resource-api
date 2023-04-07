@@ -43,6 +43,10 @@ function processData(data: any[]) {
 
 export async function insertAgencyData() {
   const agencyData = processData(require('../../data/json/agency.json'))
+  if (!agencyData.length) {
+    console.log('[insertAgencyData] agencyData is empty, skipping')
+    return
+  }
   const { count } = await prisma.agency.deleteMany({})
   console.log('[insertAgencyData] deleted %s rows', count)
   const result = []
@@ -55,6 +59,10 @@ export async function insertAgencyData() {
 
 export async function insertProgramData() {
   const programData = processData(require('../../data/json/program.json'))
+  if (!programData.length) {
+    console.log('[insertProgramData] programData is empty, skipping')
+    return
+  }
   const programsWithKeywords = await prisma.program.findMany({
     select: {
       id: true,
@@ -83,6 +91,10 @@ export async function insertProgramData() {
 
 export async function insertSiteData() {
   const siteData = processData(require('../../data/json/site.json'))
+  if (!siteData.length) {
+    console.log('[insertSiteData] siteData is empty, skipping')
+    return
+  }
   const { count } = await prisma.site.deleteMany({})
   console.log('[insertSiteData] deleted %s rows', count)
   const result = []
@@ -95,6 +107,10 @@ export async function insertSiteData() {
 
 export async function insertSiteProgramData() {
   const siteProgramData = processData(require('../../data/json/site_program.json'))
+  if (!siteProgramData.length) {
+    console.log('[insertSiteProgramData] siteProgramData is empty, skipping')
+    return
+  }
   const { count } = await prisma.site_program.deleteMany({})
   console.log('[insertSiteProgramData] deleted %s rows', count)
   const result = []
@@ -107,6 +123,10 @@ export async function insertSiteProgramData() {
 
 export async function insertTaxonomyData() {
   const taxonomyData = processData(require('../../data/json/taxonomy.json'))
+  if (!taxonomyData.length) {
+    console.log('[insertTaxonomyData] taxonomyData is empty, skipping')
+    return
+  }
   const { count } = await prisma.taxonomy.deleteMany({})
   console.log('[insertTaxonomyData] deleted %s rows', count)
   const result = []
