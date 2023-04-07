@@ -486,6 +486,10 @@ model agency {
   Mailing_Building__c                       String?
   Mailing_Suite__c                          String?
 
+  Any_Disaster_Preparedness_Services__c      String?
+  Describe_Disaster_Preparedness_Services__c String?
+  Mailing_Address_Same_as_Physical__c        String?
+
   attributes String?
 }
 
