@@ -631,6 +631,12 @@ model program {
   Transportation_Description__c           String?
   Transportation_Services_Offered__c      String?
 
+  Do_you_accept_collect_calls__c  String?
+  Phone_Description__c            String?
+  Phone_Extension__c              String?
+  Transpose_Completed__c          String?
+  Intake_Procedure_Multiselect__c String?
+
   attributes String?
 }
 
