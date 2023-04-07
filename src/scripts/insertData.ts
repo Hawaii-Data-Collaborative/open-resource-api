@@ -150,16 +150,24 @@ export async function cleanup() {
 
 async function main() {
   console.log('[insertData] backing up db...')
+  const dbFile = './db/db.sqlite3'
   const date = dayjs().format('YYYYMMDD_HHmm')
   const newFile = `./db/db.sqlite3.${date}`
-  await fs.copyFile('./db/db.sqlite3', newFile)
+  await fs.copyFile(dbFile, newFile)
   console.log('[insertData] wrote %s', newFile)
-  await insertAgencyData()
-  await insertProgramData()
-  await insertSiteData()
-  await insertSiteProgramData()
-  await insertTaxonomyData()
-  await cleanup()
+
+  try {
+    await insertAgencyData()
+    await insertProgramData()
+    await insertSiteData()
+    await insertSiteProgramData()
+    await insertTaxonomyData()
+    await cleanup()
+  } catch (err) {
+    await fs.rename(newFile, dbFile)
+    console.log('[insertData] rollback due to error, moved %s to %s', newFile, dbFile)
+    throw err
+  }
 }
 
 if (require.main === module) {
