@@ -804,6 +804,8 @@ model site {
   Site_Extension__c       String?
   Special_Hour__c         String?
 
+  Mailing_Address_Same_as_Physical__c String?
+
   attributes String?
 }
 
