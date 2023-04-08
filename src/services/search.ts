@@ -1,4 +1,4 @@
-import { program, taxonomy } from '@prisma/client'
+import { program as Program, taxonomy as Taxonomy, site as Site, site_program as SiteProgram } from '@prisma/client'
 import _ from 'lodash'
 import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
@@ -22,11 +22,11 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
   }
 
   const results = []
-  let programs: program[] = []
+  let programs: Program[] = []
 
   if (searchText) {
     if (taxonomiesByCode[searchText]) {
-      const taxName = (taxonomiesByCode[searchText] as taxonomy).Name
+      const taxName = (taxonomiesByCode[searchText] as Taxonomy).Name
       debug('[search] search by taxonomy code, searchText=%s taxName=%s', searchText, taxName)
 
       programs = await prisma.program.findMany({
@@ -56,7 +56,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
 
     if (!programs.length) {
       const res = await meilisearch.index('program').search(searchText, { limit: 500 })
-      programs = res.hits as program[]
+      programs = res.hits as Program[]
 
       if (searchTaxonomyIndex) {
         const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 500 })
@@ -75,10 +75,10 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
     programs = await prisma.program.findMany({ where: { Status__c: { not: 'Inactive' } } })
   }
 
-  let filteredPrograms: program[] = []
+  let filteredPrograms: Program[] = []
   if (taxonomies) {
     const taxonomyCodes = taxonomies.split(',').map((s) => s.trim())
-    const filteredTaxonomies: taxonomy[] = []
+    const filteredTaxonomies: Taxonomy[] = []
     for (const code of taxonomyCodes) {
       if (taxonomiesByCode[code]) {
         filteredTaxonomies.push(taxonomiesByCode[code])
@@ -109,6 +109,11 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
 
   const programIds = filteredPrograms.map((p) => p.id)
   const sitePrograms = await prisma.site_program.findMany({
+    select: {
+      id: true,
+      Site__c: true,
+      Program__c: true
+    },
     where: {
       Program__c: {
         in: programIds
@@ -152,46 +157,50 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
   }
 
   for (const p of filteredPrograms) {
-    const spList = siteProgramMap[p.id]
+    const spList: SiteProgram[] = siteProgramMap[p.id]
     if (!spList?.length) {
       continue
     }
-    const site = siteMap[spList[0].Site__c]
-    if (!site) {
-      continue
-    }
-    let physicalAddress = ''
-    let locationLat = ''
-    let locationLon = ''
-    let street = site.Street_Number__c
-    if (street && site.City__c) {
-      if (site.Suite__c) {
-        street += ` ${site.Suite__c}`
+    for (const sp of spList) {
+      const site: Site = siteMap[sp.Site__c as string]
+      if (!site) {
+        continue
       }
-      physicalAddress = street
-      if (site.Location__Latitude__s && site.Location__Longitude__s) {
-        locationLat = site.Location__Latitude__s
-        locationLon = site.Location__Longitude__s
-      }
-    }
 
-    results.push({
-      _source: {
-        id: p.id, //
-        service_name: p.Name, // - service_name, location_name, organization_name
-        location_name: agencyMap[p.Account__c as string],
-        physical_address: physicalAddress,
-        physical_address_city: site.City__c,
-        physical_address_state: site.State__c,
-        physical_address_postal_code: site.Zip_Code__c,
-        location_latitude: locationLat,
-        location_longitude: locationLon,
-        service_short_description: p.Service_Description__c, // - service_short_description
-        phone: p.Program_Phone__c || p.Program_Phone_Text__c, //
-        website: p.Website__c //
-      },
-      _score: 1 //
-    })
+      const locationName = site.Name
+      let physicalAddress = ''
+      let locationLat = ''
+      let locationLon = ''
+      let street = site.Street_Number__c
+      if (street && site.City__c) {
+        if (site.Suite__c) {
+          street += ` ${site.Suite__c}`
+        }
+        physicalAddress = street
+        if (site.Location__Latitude__s && site.Location__Longitude__s) {
+          locationLat = site.Location__Latitude__s
+          locationLon = site.Location__Longitude__s
+        }
+      }
+
+      results.push({
+        _source: {
+          id: sp.id, //
+          service_name: p.Name, // - service_name, location_name, organization_name
+          location_name: locationName,
+          physical_address: physicalAddress,
+          physical_address_city: site.City__c,
+          physical_address_state: site.State__c,
+          physical_address_postal_code: site.Zip_Code__c,
+          location_latitude: locationLat,
+          location_longitude: locationLon,
+          service_short_description: p.Service_Description__c, // - service_short_description
+          phone: p.Program_Phone__c || p.Program_Phone_Text__c, //
+          website: p.Website__c //
+        },
+        _score: 1 //
+      })
+    }
   }
 
   return results

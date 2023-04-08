@@ -1,5 +1,4 @@
 import Router from '@koa/router'
-import { site as Site } from '@prisma/client'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime'
 
 import prisma from '../../lib/prisma'
@@ -36,13 +35,32 @@ router.get('/:id', async (ctx) => {
   // ctx.body = serviceAtLocation;
 
   try {
-    const program = await prisma.program.findFirst({
+    const siteProgram = await prisma.site_program.findFirst({
+      select: {
+        id: true,
+        Site__c: true,
+        Program__c: true
+      },
+      where: { id: ctx.params.id },
+      rejectOnNotFound: true
+    })
+
+    const site = await prisma.site.findFirst({
       where: {
         Status__c: { not: 'Inactive' },
-        id: ctx.params.id
+        id: siteProgram.Site__c as string
       },
       rejectOnNotFound: true
     })
+
+    const program = await prisma.program.findFirst({
+      where: {
+        Status__c: { not: 'Inactive' },
+        id: siteProgram.Program__c as string
+      },
+      rejectOnNotFound: true
+    })
+
     const agency = await prisma.agency.findFirst({
       where: {
         Status__c: { not: 'Inactive' },
@@ -52,8 +70,8 @@ router.get('/:id', async (ctx) => {
     })
 
     const result: any = {
-      id: program.id,
-      title: `${program.Name} at ${agency.Name}`,
+      id: siteProgram.id,
+      title: `${program.Name} at ${site.Name}`,
       description: program.Service_Description__c,
       phone: program.Program_Phone__c || program.Program_Phone_Text__c,
       website: program.Website__c,
@@ -74,47 +92,27 @@ router.get('/:id', async (ctx) => {
           : program.ServiceArea__c.replaceAll(';', ', ')
     }
 
-    const sitePrograms = await prisma.site_program.findMany({ where: { Program__c: program?.id } })
-    const siteIds = sitePrograms.map((s) => s.Site__c as string)
-    const sites = await prisma.site.findMany({
-      where: {
-        Status__c: { not: 'Inactive' },
-        id: { in: siteIds }
+    let street = site.Street_Number__c
+    if (street && site.City__c) {
+      if (site.Suite__c) {
+        street += ` ${site.Suite__c}`
       }
-    })
-    const siteMap: any = {}
-    for (const s of sites) {
-      siteMap[s.id] = s
+      let physicalAddress = street
+      if (site.City__c) {
+        physicalAddress += `, ${site.City__c}`
+        if (site.State__c) {
+          physicalAddress += ` ${site.State__c}`
+          if (site.Zip_Code__c) {
+            physicalAddress += ` ${site.Zip_Code__c}`
+          }
+        }
+      }
+      result.locationName = physicalAddress
     }
 
-    for (const sp of sitePrograms) {
-      const site: Site = siteMap[sp.Site__c as string]
-      if (site) {
-        let street = site.Street_Number__c
-        if (street && site.City__c) {
-          if (site.Suite__c) {
-            street += ` ${site.Suite__c}`
-          }
-          let physicalAddress = street
-          if (site.City__c) {
-            physicalAddress += `, ${site.City__c}`
-            if (site.State__c) {
-              physicalAddress += ` ${site.State__c}`
-              if (site.Zip_Code__c) {
-                physicalAddress += ` ${site.Zip_Code__c}`
-              }
-            }
-          }
-          result.locationName = physicalAddress
-        }
-
-        if (site.Street_Number__c && site.Location__Latitude__s && site.Location__Longitude__s) {
-          result.locationLat = site.Location__Latitude__s
-          result.locationLon = site.Location__Longitude__s
-        }
-
-        break
-      }
+    if (site.Street_Number__c && site.Location__Latitude__s && site.Location__Longitude__s) {
+      result.locationLat = site.Location__Latitude__s
+      result.locationLon = site.Location__Longitude__s
     }
 
     // id: result.id
