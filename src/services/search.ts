@@ -221,7 +221,7 @@ export async function instantSearch(searchText: string, userId: string) {
 
   const suggestions = {
     programs: programs.map((p) => ({ ...p, group: 'Programs' })),
-    taxonomies: taxonomies.map((t) => ({ ...t, group: 'Categories / Taxonomies' })),
+    taxonomies: taxonomies.map((t) => ({ ...t, group: 'Services' })),
     relatedSearches: relatedSearches.map((text, i) => ({ id: -(i + 1001), text, group: 'Related searches' })),
     trendingSearches: trendingSearches.map((text: any, i: number) => ({
       id: -(i + 1),

@@ -10,8 +10,8 @@ router.get('/', async (ctx) => {
   const suggestions = await instantSearch(searchText as string, userId as string)
 
   ctx.body = [
-    ...suggestions.programs,
     ...suggestions.taxonomies,
+    ...suggestions.programs,
     ...suggestions.relatedSearches,
     ...suggestions.trendingSearches
   ]
