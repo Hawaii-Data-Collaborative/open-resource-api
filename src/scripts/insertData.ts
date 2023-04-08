@@ -7,9 +7,13 @@
  * 5. Inserts it into the database.
  */
 
-import dayjs from 'dayjs'
+import { exec } from 'child_process'
 import * as fs from 'fs/promises'
+import * as util from 'util'
+import dayjs from 'dayjs'
 import prisma from '../lib/prisma'
+
+const execAsync = util.promisify(exec)
 
 /**
  * Everything in our sqlite db is a string, so:
@@ -166,6 +170,7 @@ async function main() {
   } catch (err) {
     await fs.rename(newFile, dbFile)
     console.log('[insertData] rollback due to error, moved %s to %s', newFile, dbFile)
+    await execAsync(`emailadmins -s "[open-resource-api] insertData.ts error" -b "${(err as Error).stack}"`)
     throw err
   }
 }
