@@ -47,7 +47,7 @@ router.get('/:id', async (ctx) => {
 
     const site = await prisma.site.findFirst({
       where: {
-        Status__c: { not: 'Inactive' },
+        Status__c: { in: ['Active', 'Active - Online Only'] },
         id: siteProgram.Site__c as string
       },
       rejectOnNotFound: true
@@ -63,7 +63,7 @@ router.get('/:id', async (ctx) => {
 
     const agency = await prisma.agency.findFirst({
       where: {
-        Status__c: { not: 'Inactive' },
+        Status__c: { in: ['Active', 'Active - Online Only'] },
         id: program.Account__c as string
       },
       rejectOnNotFound: true

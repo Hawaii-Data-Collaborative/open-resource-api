@@ -132,7 +132,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
 
   const sites = await prisma.site.findMany({
     where: {
-      Status__c: { not: 'Inactive' },
+      Status__c: { in: ['Active', 'Active - Online Only'] },
       id: {
         in: siteIds
       }
@@ -147,7 +147,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
   const agencyIds = _.compact(filteredPrograms.map((p) => p.Account__c as string))
   const agencies = await prisma.agency.findMany({
     where: {
-      Status__c: { not: 'Inactive' },
+      Status__c: { in: ['Active', 'Active - Online Only'] },
       id: { in: agencyIds }
     }
   })

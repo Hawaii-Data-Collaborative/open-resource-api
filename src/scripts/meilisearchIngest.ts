@@ -14,7 +14,7 @@ async function processTaxonomies() {
 }
 
 async function processAgencies() {
-  const agencies = await prisma.agency.findMany({ where: { Status__c: { not: 'Inactive' } } })
+  const agencies = await prisma.agency.findMany({ where: { Status__c: { in: ['Active', 'Active - Online Only'] } } })
   const index = meilisearch.index('agency')
   await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)
@@ -24,7 +24,7 @@ async function processAgencies() {
 }
 
 async function processSites() {
-  const sites = await prisma.site.findMany({ where: { Status__c: { not: 'Inactive' } } })
+  const sites = await prisma.site.findMany({ where: { Status__c: { in: ['Active', 'Active - Online Only'] } } })
   for (const site of sites) {
     const tmp = site as any
     tmp._geo = {
