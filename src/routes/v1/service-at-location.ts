@@ -69,10 +69,19 @@ router.get('/:id', async (ctx) => {
       rejectOnNotFound: true
     })
 
+    const categories = []
+    for (const taxName of program.Program_Taxonomies__c?.split(';') || []) {
+      const tax = await prisma.taxonomy.findFirst({ select: { Code__c: true, Name: true }, where: { Name: taxName } })
+      if (tax) {
+        categories.push({ value: tax.Code__c, label: tax.Name })
+      }
+    }
+
     const result: any = {
       id: siteProgram.id,
       title: `${program.Name} at ${site.Name}`,
       description: program.Service_Description__c,
+      categories,
       phone: program.Program_Phone__c || program.Program_Phone_Text__c,
       website: program.Website__c,
       languages: program.Languages__c,
