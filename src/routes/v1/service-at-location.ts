@@ -1,6 +1,6 @@
+import _ from 'lodash'
 import Router from '@koa/router'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime'
-
 import prisma from '../../lib/prisma'
 
 const router = new Router({
@@ -8,32 +8,6 @@ const router = new Router({
 })
 
 router.get('/:id', async (ctx) => {
-  // const serviceAtLocation = await prisma.service_at_location.findFirst({
-  //   where: { id: ctx.params.id },
-  //   include: {
-  //     service: {
-  //       include: {
-  //         organization: true,
-  //         eligibility: true,
-  //         schedule: true,
-  //       },
-  //     },
-  //     phone: {
-  //       take: 1,
-  //     },
-  //     location: {
-  //       include: {
-  //         physical_address: {
-  //           take: 1,
-  //         },
-  //         language: true,
-  //       },
-  //     },
-  //   },
-  // });
-
-  // ctx.body = serviceAtLocation;
-
   try {
     const siteProgram = await prisma.site_program.findFirst({
       select: {
@@ -70,7 +44,8 @@ router.get('/:id', async (ctx) => {
     })
 
     const categories = []
-    for (const taxName of program.Program_Taxonomies__c?.split(';') || []) {
+    const taxNames = _.uniq(program.Program_Taxonomies__c?.split(';') || [])
+    for (const taxName of taxNames) {
       const tax = await prisma.taxonomy.findFirst({ select: { Code__c: true, Name: true }, where: { Name: taxName } })
       if (tax) {
         categories.push({ value: tax.Code__c, label: tax.Name })
@@ -123,24 +98,6 @@ router.get('/:id', async (ctx) => {
       result.locationLat = site.Location__Latitude__s
       result.locationLon = site.Location__Longitude__s
     }
-
-    // id: result.id
-    // title: result.service.name + (result.location.name || result.organization.name)
-    // locationName: `${result.location.physical_address[0].address_1}, ${result.location.physical_address[0].city}, ${result.location.physical_address[0].state_province} ${result.location.physical_address[0].postal_code}`
-    // locationLat: result.location.latitude
-    // locationLon: result.location.longitude
-    // description: result.service.description || result.service.short_description || result.result.description
-    // phone: result.phone[0].number
-    // website: result.service.url || result.url
-    // languages: result?.location?.language ?? result.language
-    // fees: result.service.fees
-    // emergencyInfo: result.service.emergency_info
-    // eligibility: result?.service?.eligibility ?? result?.eligibility ?? []
-    // email: result.service.email
-    // schedule: result?.service?.schedule[0]?.description ?? result?.schedule[0]?.description
-    // applicationProcess: result.service.application_process
-    // organizationName: result.service.organization.name
-    // organizationDescription: result.service.organization.description
 
     ctx.body = result
   } catch (err) {
