@@ -12,7 +12,7 @@ async function main() {
       console.log(
         `${parent.name} – ${child.name}:\n  ${results
           .map(
-            (r) =>
+            (r: any) =>
               `${r._source.location_name} at ${r._source.service_name}\n    ${trim(
                 r._source.service_short_description as string
               )}`
