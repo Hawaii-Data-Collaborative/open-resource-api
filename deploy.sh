@@ -1,22 +1,22 @@
 #! /usr/bin/env bash
 
 echo "[deploy] pushing code ..."
-git push beta main
+git push
 echo "[deploy] scp'ing ..."
-scp dist.tar.gz wwa:/var/www/auwsearch.windwardapps.com/open-resource-api/
+scp dist.tar.gz auw1:/var/www/searchengine-backend/
 echo "[deploy] ssh'ing ..."
-ssh wwa bash << EOF
-cd /var/www/auwsearch.windwardapps.com/open-resource-api
+ssh auw1 bash << EOF
+cd /var/www/searchengine-backend
 echo "[deploy] pulling code ..."
-git reset --hard
+git pull
 echo "[deploy] installing dependencies ..."
-/home/kyle/bin/yarn
+npm install --production
 npx prisma generate
 echo "[deploy] uncompressing ..."
 mv dist dist-old
 tar xzf dist.tar.gz
 echo "[deploy] restarting ..."
-sudo service auw211api restart
+sudo ./restart.sh
 rm -rf dist-old
 EOF
 

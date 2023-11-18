@@ -1,0 +1,18 @@
+[Unit]
+Description=auw211 - express.js server
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+User=www-data
+Group=www-data
+Environment="PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+WorkingDirectory=/var/www/searchengine-backend
+StandardOutput=append:/var/log/auw/expressjs.log
+StandardError=append:/var/log/auw/expressjs.log
+ExecStart=npm start
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

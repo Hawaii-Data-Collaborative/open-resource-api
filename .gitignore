@@ -8,3 +8,6 @@ node_modules/
 /env
 /tmp
 /LAST_SYNC
+/meilisearch*
+/dist.tar.gz
+/notes.txt
