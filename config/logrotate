@@ -1,0 +1,9 @@
+/var/log/auw/*.log {
+  su www-data:www-data
+  rotate 14
+  daily
+  compress
+  missingok
+  notifempty
+  copytruncate
+}
