@@ -28,13 +28,13 @@ node scripts/copyDataFromSF.js Taxonomy__c taxonomy
 
 print "fetched data from Salesforce"
 
-yarn insertData
+npm run insertData
 print "loaded data into sqlite"
 
-yarn processData
+npm run processData
 print "postprocessed data in sqlite"
 
-yarn meilisearchIngest
+npm run meilisearchIngest
 print "loaded data into meilisearch"
 
 echo `date -Iseconds` > LAST_SYNC
