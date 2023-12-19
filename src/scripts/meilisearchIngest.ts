@@ -1,7 +1,12 @@
+import { DocumentOptions } from 'meilisearch'
 import { searchableAttributes } from '../constants'
 import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
 import stopWords from './stopWords.json'
+
+const addDocOptions: DocumentOptions = {
+  primaryKey: 'id'
+}
 
 async function processTaxonomies() {
   const taxonomies = await prisma.taxonomy.findMany({ where: { Status__c: { not: 'Inactive' } } })
@@ -9,7 +14,7 @@ async function processTaxonomies() {
   await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)
   console.log('[processTaxonomies] updateStopWords task=%s', JSON.stringify(task1))
-  const task2 = await index.addDocuments(taxonomies)
+  const task2 = await index.addDocuments(taxonomies, addDocOptions)
   console.log('[processTaxonomies] addDocuments count=%s task=%s', taxonomies.length, JSON.stringify(task2))
 }
 
@@ -19,7 +24,7 @@ async function processAgencies() {
   await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)
   console.log('[processAgencies] updateStopWords task=%s', JSON.stringify(task1))
-  const task2 = await index.addDocuments(agencies)
+  const task2 = await index.addDocuments(agencies, addDocOptions)
   console.log('[processAgencies] addDocuments count=%s task=%s', agencies.length, JSON.stringify(task2))
 }
 
@@ -36,7 +41,7 @@ async function processSites() {
   await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)
   console.log('[processSites] updateStopWords task=%s', JSON.stringify(task1))
-  const task2 = await index.addDocuments(sites)
+  const task2 = await index.addDocuments(sites, addDocOptions)
   console.log('[processSites] addDocuments count=%s task=%s', sites.length, JSON.stringify(task2))
 }
 
@@ -48,7 +53,7 @@ async function processPrograms() {
   console.log('[processPrograms] updateStopWords task=%s', JSON.stringify(task1))
   const task2 = await index.updateSettings({ searchableAttributes: searchableAttributes.program })
   console.log('[processPrograms] updateSearchableAttributes task=%s', JSON.stringify(task2))
-  const task3 = await index.addDocuments(programs)
+  const task3 = await index.addDocuments(programs, addDocOptions)
   console.log('[processPrograms] addDocuments count=%s task=%s', programs.length, JSON.stringify(task3))
 }
 
@@ -58,7 +63,7 @@ async function processSitePrograms() {
   await index.deleteAllDocuments()
   const task1 = await index.updateStopWords(stopWords.en)
   console.log('[processSitePrograms] updateStopWords task=%s', JSON.stringify(task1))
-  const task2 = await index.addDocuments(sitePrograms)
+  const task2 = await index.addDocuments(sitePrograms, addDocOptions)
   console.log('[processSitePrograms] addDocuments count=%s task=%s', sitePrograms.length, JSON.stringify(task2))
 }
 
