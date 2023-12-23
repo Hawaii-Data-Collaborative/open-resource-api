@@ -171,15 +171,17 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
       let physicalAddress = ''
       let locationLat = ''
       let locationLon = ''
-      let street = site.Street_Number__c
-      if (street && site.City__c) {
-        if (site.Suite__c) {
-          street += ` ${site.Suite__c}`
-        }
-        physicalAddress = street
-        if (site.Location__Latitude__s && site.Location__Longitude__s) {
-          locationLat = site.Location__Latitude__s
-          locationLon = site.Location__Longitude__s
+      if (!site.Billing_Address_is_Confidential__c) {
+        let street = site.Street_Number__c
+        if (street && site.City__c) {
+          if (site.Suite__c) {
+            street += ` ${site.Suite__c}`
+          }
+          physicalAddress = street
+          if (site.Location__Latitude__s && site.Location__Longitude__s) {
+            locationLat = site.Location__Latitude__s
+            locationLon = site.Location__Longitude__s
+          }
         }
       }
 
