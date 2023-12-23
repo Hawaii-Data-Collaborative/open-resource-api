@@ -38,4 +38,7 @@ npm run meilisearchIngest
 print "loaded data into meilisearch"
 
 echo `date -Iseconds` > LAST_SYNC
+
+sudo ./restart.sh
+
 print "end"
