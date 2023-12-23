@@ -7,6 +7,7 @@ export const searchableAttributes = {
     'Accessibility__c',
     'Additional_Information__c',
     'Eligibility__c',
+    'Eligibility_Long__c',
     'Fees_Text__c'
   ]
 }
