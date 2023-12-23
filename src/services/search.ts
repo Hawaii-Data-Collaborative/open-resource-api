@@ -1,4 +1,10 @@
-import { program as Program, taxonomy as Taxonomy, site as Site, site_program as SiteProgram } from '@prisma/client'
+import {
+  agency as Agency,
+  program as Program,
+  taxonomy as Taxonomy,
+  site as Site,
+  site_program as SiteProgram
+} from '@prisma/client'
 import _ from 'lodash'
 import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
@@ -147,16 +153,20 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
   const agencyIds = _.compact(filteredPrograms.map((p) => p.Account__c as string))
   const agencies = await prisma.agency.findMany({
     where: {
-      Status__c: { in: ['Active', 'Active - Online Only'] },
       id: { in: agencyIds }
     }
   })
   const agencyMap: any = {}
   for (const a of agencies) {
-    agencyMap[a.id] = a.Name
+    agencyMap[a.id] = a
   }
 
   for (const p of filteredPrograms) {
+    const agency: Agency = agencyMap[p.Account__c as string]
+    if (!['Active', 'Active - Online Only'].includes(agency.Status__c as string)) {
+      debug('[search] skipping program %s, agency %s status=%s', p.Name, agency.Name, agency.Status__c)
+      continue
+    }
     const spList: SiteProgram[] = siteProgramMap[p.id]
     if (!spList?.length) {
       continue
@@ -171,7 +181,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
       let physicalAddress = ''
       let locationLat = ''
       let locationLon = ''
-      if (!site.Billing_Address_is_Confidential__c) {
+      if (!site.Billing_Address_is_Confidential__c || site.Billing_Address_is_Confidential__c == '0') {
         let street = site.Street_Number__c
         if (street && site.City__c) {
           if (site.Suite__c) {

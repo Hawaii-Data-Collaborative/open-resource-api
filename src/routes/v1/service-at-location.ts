@@ -76,27 +76,29 @@ router.get('/:id', async (ctx) => {
           : program.ServiceArea__c.replaceAll(';', ', ')
     }
 
-    let street = site.Street_Number__c
-    if (street && site.City__c) {
-      if (site.Suite__c) {
-        street += ` ${site.Suite__c}`
-      }
-      let physicalAddress = street
-      if (site.City__c) {
-        physicalAddress += `, ${site.City__c}`
-        if (site.State__c) {
-          physicalAddress += ` ${site.State__c}`
-          if (site.Zip_Code__c) {
-            physicalAddress += ` ${site.Zip_Code__c}`
+    if (!site.Billing_Address_is_Confidential__c || site.Billing_Address_is_Confidential__c == '0') {
+      let street = site.Street_Number__c
+      if (street && site.City__c) {
+        if (site.Suite__c) {
+          street += ` ${site.Suite__c}`
+        }
+        let physicalAddress = street
+        if (site.City__c) {
+          physicalAddress += `, ${site.City__c}`
+          if (site.State__c) {
+            physicalAddress += ` ${site.State__c}`
+            if (site.Zip_Code__c) {
+              physicalAddress += ` ${site.Zip_Code__c}`
+            }
           }
         }
+        result.locationName = physicalAddress
       }
-      result.locationName = physicalAddress
-    }
 
-    if (site.Street_Number__c && site.Location__Latitude__s && site.Location__Longitude__s) {
-      result.locationLat = site.Location__Latitude__s
-      result.locationLon = site.Location__Longitude__s
+      if (site.Street_Number__c && site.Location__Latitude__s && site.Location__Longitude__s) {
+        result.locationLat = site.Location__Latitude__s
+        result.locationLon = site.Location__Longitude__s
+      }
     }
 
     ctx.body = result
