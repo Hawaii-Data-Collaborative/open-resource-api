@@ -62,7 +62,7 @@ router.get('/:id', async (ctx) => {
       languages: program.Languages__c,
       fees: program.Fees_Text__c,
       emergencyInfo: '',
-      eligibility: program.Eligibility_Long__c || program.Eligibility__c,
+      eligibility: program.Eligibility_Long__c, // || program.Eligibility__c,
       email: program.Program_Email__c,
       schedule: program.Hours__c,
       applicationProcess: program.Intake_Procedure__c,
