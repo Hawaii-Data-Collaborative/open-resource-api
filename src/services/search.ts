@@ -15,15 +15,31 @@ const debug = require('debug')('app:services:search')
 let taxonomiesByCode: any
 let taxonomiesByName: any
 
+async function findProgramsByTaxonomyIds(taxIds: string[]) {
+  const psList = await prisma.program_service.findMany({
+    select: { Program__c: true },
+    where: { Taxonomy__c: { in: taxIds } }
+  })
+  const programIds = psList.map((ps) => ps.Program__c)
+  const programs = await prisma.program.findMany({
+    where: {
+      Status__c: { not: 'Inactive' },
+      id: { in: programIds }
+    }
+  })
+  return programs
+}
+
 export async function search({ searchText = '', taxonomies = '', searchTaxonomyIndex = false } = {}) {
+  debug('[search] searchText=%s taxonomies=%s searchTaxonomyIndex=%s', searchText, taxonomies, searchTaxonomyIndex)
   if (!taxonomiesByCode) {
     debug('[search] populating taxonomiesByCode')
     const arr = await prisma.taxonomy.findMany({ where: { Status__c: { not: 'Inactive' } } })
     taxonomiesByCode = {}
     taxonomiesByName = {}
     for (const t of arr) {
-      taxonomiesByCode[t.Code__c as string] = t
-      taxonomiesByName[t.Name as string] = t
+      taxonomiesByCode[t.Code__c] = t
+      taxonomiesByName[t.Name] = t
     }
   }
 
@@ -32,83 +48,60 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
 
   if (searchText) {
     if (taxonomiesByCode[searchText]) {
-      const taxName = (taxonomiesByCode[searchText] as Taxonomy).Name
-      debug('[search] search by taxonomy code, searchText=%s taxName=%s', searchText, taxName)
-
-      programs = await prisma.program.findMany({
-        where: {
-          Status__c: { not: 'Inactive' },
-          OR: [
-            { Taxonomy_1__c: taxName },
-            { Taxonomy_2__c: taxName },
-            { Taxonomy_3__c: taxName },
-            { Taxonomy_4__c: taxName },
-            { Taxonomy_5__c: taxName },
-            { Taxonomy_6__c: taxName },
-            { Taxonomy_7__c: taxName },
-            { Taxonomy_8__c: taxName },
-            { Taxonomy_9__c: taxName },
-            { Taxonomy_10__c: taxName }
-          ]
-        }
-      })
-
-      if (programs.length) {
-        debug('[search] found %s programs', programs.length)
-      } else {
-        debug('[search] no results, fallback to regular search')
-      }
+      const tid = (taxonomiesByCode[searchText] as Taxonomy).id
+      debug('[search] found taxonomy in taxonomiesByCode, searchText=%s tid=%s', searchText, tid)
+      programs = await findProgramsByTaxonomyIds([tid])
+      debug('[search] found %s programs for that taxonomy', programs.length)
     }
 
     if (!programs.length) {
       const res = await meilisearch.index('program').search(searchText, { limit: 500 })
       programs = res.hits as Program[]
+      debug('[search] main search found %s programs', programs.length)
 
       if (searchTaxonomyIndex) {
         const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 500 })
-        const taxNames = res2.hits.map((t) => t.Name)
-        const programs2 = await prisma.program.findMany({
-          where: {
-            Status__c: { not: 'Inactive' },
-            OR: taxNames.map((taxName) => ({ Program_Taxonomies__c: { contains: taxName } }))
-          }
-        })
-
+        const taxIds = res2.hits.map((t) => t.id)
+        const programs2 = await findProgramsByTaxonomyIds(taxIds)
+        debug('[search] found %s additional programs in taxonomy search', programs2.length)
         programs = _.uniqBy([...programs, ...programs2], 'id')
       }
     }
   } else {
     programs = await prisma.program.findMany({ where: { Status__c: { not: 'Inactive' } } })
+    debug('[search] no search text, loaded all %s programs', programs.length)
   }
 
   let filteredPrograms: Program[] = []
   if (taxonomies) {
+    debug('[search] processing taxonomies input')
     const taxonomyCodes = taxonomies.split(',').map((s) => s.trim())
     const filteredTaxonomies: Taxonomy[] = []
     for (const code of taxonomyCodes) {
       if (taxonomiesByCode[code]) {
+        debug('[search] found code %s in taxonomiesByCode', code)
         filteredTaxonomies.push(taxonomiesByCode[code])
-      }
-    }
-
-    const taxonomiesByName2: any = {}
-    for (const t of filteredTaxonomies) {
-      taxonomiesByName2[t.Name as string] = t
-    }
-
-    for (const program of programs) {
-      if (!program.Program_Taxonomies__c?.length) {
-        continue
-      }
-      const progTaxList = program.Program_Taxonomies__c.split(';').map((s) => s.trim())
-
-      for (const progTaxName of progTaxList) {
-        if (taxonomiesByName2[progTaxName]) {
-          filteredPrograms.push(program)
-          break
+      } else if (code.endsWith('*')) {
+        const code2 = code.replaceAll('*', '').trim()
+        if (code2.length) {
+          const taxList = await prisma.taxonomy.findMany({
+            where: {
+              Code__c: { startsWith: code2 },
+              Status__c: { not: 'Inactive' }
+            }
+          })
+          debug('[search] found %s taxonomies for code %s', taxList.length, code)
+          filteredTaxonomies.push(...taxList)
+        } else {
+          debug('[search] code2 is empty')
         }
       }
     }
+
+    const taxIds = filteredTaxonomies.map((t) => t.id)
+    const tmp = await findProgramsByTaxonomyIds(taxIds)
+    debug('[search] added %s programs to search results based on taxonomy search', tmp.length)
+    filteredPrograms.push(...tmp)
   } else {
     filteredPrograms = programs
   }

@@ -73,7 +73,7 @@ async function replaceCommaSeparators() {
   for (const p of programs) {
     let skip = false
     for (const taxWithComma of taxonomiesWithCommas) {
-      if ((p.Program_Taxonomies__c as string).includes(taxWithComma.Name as string)) {
+      if ((p.Program_Taxonomies__c as string).includes(taxWithComma.Name)) {
         skip = true
         break
       }

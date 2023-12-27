@@ -1,4 +1,3 @@
-import _ from 'lodash'
 import Router from '@koa/router'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime'
 import prisma from '../../lib/prisma'
@@ -44,12 +43,20 @@ router.get('/:id', async (ctx) => {
     })
 
     const categories = []
-    const taxNames = _.uniq(program.Program_Taxonomies__c?.split(';') || [])
-    for (const taxName of taxNames) {
-      const tax = await prisma.taxonomy.findFirst({ select: { Code__c: true, Name: true }, where: { Name: taxName } })
-      if (tax) {
-        categories.push({ value: tax.Code__c, label: tax.Name })
+    const psList = await prisma.program_service.findMany({
+      select: { Taxonomy__c: true },
+      where: { Program__c: program.id }
+    })
+    const taxIds = psList.map((ps) => ps.Taxonomy__c)
+    const taxList = await prisma.taxonomy.findMany({
+      select: { Name: true, Code__c: true },
+      where: {
+        id: { in: taxIds },
+        Status__c: { not: 'Inactive' }
       }
+    })
+    for (const tax of taxList) {
+      categories.push({ value: tax.Code__c, label: tax.Name })
     }
 
     const result: any = {

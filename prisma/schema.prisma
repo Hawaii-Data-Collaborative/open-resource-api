@@ -868,7 +868,7 @@ model taxonomy {
   id                                       String  @id
   OwnerId                                  String?
   IsDeleted                                String?
-  Name                                     String?
+  Name                                     String
   CreatedDate                              String?
   CreatedById                              String?
   LastModifiedDate                         String?
@@ -878,7 +878,7 @@ model taxonomy {
   LastViewedDate                           String?
   LastReferencedDate                       String?
   AIRS_Problem_Need__c                     String?
-  Code__c                                  String?
+  Code__c                                  String
   Definition__c                            String?
   Status__c                                String?
   Term_for_Contact_and_Resources_Module__c String?
