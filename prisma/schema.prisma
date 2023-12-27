@@ -643,26 +643,16 @@ model program {
 }
 
 model program_service {
-  id                           String @id
-  IsDeleted                    String
-  Name                         String
-  CreatedDate                  String
-  CreatedById                  String
-  LastModifiedDate             String
-  LastModifiedById             String
-  SystemModstamp               String
-  LastActivityDate             String
-  LastViewedDate               String
-  LastReferencedDate           String
-  Program__c                   String
-  Program_Name__c              String
-  Taxonomy__c                  String
-  Program_Service_Unique_ID__c String
-  AIRS_Term__c                 String
-  Target_Taxonomy_1__c         String
-  Target_Taxonomy_2__c         String
-  Create_Multiple__c           String
-  attributes                   String
+  id               String  @id
+  Program__c       String
+  Taxonomy__c      String
+  Name             String
+  IsDeleted        Boolean
+  CreatedDate      String
+  CreatedById      String
+  LastModifiedDate String
+  LastModifiedById String
+  SystemModstamp   String
 }
 
 model site {

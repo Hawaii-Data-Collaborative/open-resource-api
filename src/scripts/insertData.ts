@@ -93,6 +93,33 @@ export async function insertProgramData() {
   console.log('[insertProgramData] inserted %s rows', result.length)
 }
 
+export async function insertProgramServiceData() {
+  const programServiceData = require('../../data/json/program_service.json').map((o: any) => ({
+    id: o.Id,
+    Program__c: o.Program__c,
+    Taxonomy__c: o.Taxonomy__c,
+    Name: o.Name,
+    IsDeleted: o.IsDeleted,
+    CreatedDate: o.CreatedDate,
+    CreatedById: o.CreatedById,
+    LastModifiedDate: o.LastModifiedDate,
+    LastModifiedById: o.LastModifiedById,
+    SystemModstamp: o.SystemModstamp
+  }))
+  if (!programServiceData.length) {
+    console.log('[insertProgramServiceData] siteData is empty, skipping')
+    return
+  }
+  const { count } = await prisma.program_service.deleteMany({})
+  console.log('[insertProgramServiceData] deleted %s rows', count)
+  const result = []
+  for (const data of programServiceData) {
+    const program_service = await prisma.program_service.create({ data })
+    result.push(program_service)
+  }
+  console.log('[insertProgramServiceData] inserted %s rows', result.length)
+}
+
 export async function insertSiteData() {
   const siteData = processData(require('../../data/json/site.json'))
   if (!siteData.length) {
@@ -163,6 +190,7 @@ async function main() {
   try {
     await insertAgencyData()
     await insertProgramData()
+    await insertProgramServiceData()
     await insertSiteData()
     await insertSiteProgramData()
     await insertTaxonomyData()

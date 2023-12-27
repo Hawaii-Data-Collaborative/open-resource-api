@@ -57,6 +57,16 @@ async function processPrograms() {
   console.log('[processPrograms] addDocuments count=%s task=%s', programs.length, JSON.stringify(task3))
 }
 
+async function processProgramServices() {
+  const programServices = await prisma.program_service.findMany()
+  const index = meilisearch.index('program_service')
+  await index.deleteAllDocuments()
+  const task1 = await index.updateStopWords(stopWords.en)
+  console.log('[processProgramServices] updateStopWords task=%s', JSON.stringify(task1))
+  const task2 = await index.addDocuments(programServices, addDocOptions)
+  console.log('[processProgramServices] addDocuments count=%s task=%s', programServices.length, JSON.stringify(task2))
+}
+
 async function processSitePrograms() {
   const sitePrograms = await prisma.site_program.findMany()
   const index = meilisearch.index('site_program')
@@ -72,6 +82,7 @@ async function main() {
   await processAgencies()
   await processSites()
   await processPrograms()
+  await processProgramServices()
   await processSitePrograms()
 }
 
