@@ -86,6 +86,20 @@ router.get('/:id', async (ctx) => {
       languages = ''
     }
 
+    let applicationProcess: string
+    if (program.Intake_Procedure_Multiselect__c !== null) {
+      const items = new Set(program.Intake_Procedure_Multiselect__c.split(';'))
+      if (items.has('Other (specify)')) {
+        items.delete('Other (specify)')
+        items.add(program.Intake_Procedures_Other__c as string)
+      }
+      applicationProcess = [...items].join(', ')
+    } else if (program.Intake_Procedure__c !== null) {
+      applicationProcess = program.Intake_Procedure__c
+    } else {
+      applicationProcess = ''
+    }
+
     const result: any = {
       id: siteProgram.id,
       title: `${program.Name} at ${site.Name}`,
@@ -99,7 +113,7 @@ router.get('/:id', async (ctx) => {
       eligibility: program.Eligibility_Long__c, // || program.Eligibility__c,
       email: program.Program_Email__c,
       schedule: program.Hours__c,
-      applicationProcess: program.Intake_Procedure__c,
+      applicationProcess,
       organizationName: agency.Name,
       organizationDescription: agency.Overview__c,
       serviceArea:
