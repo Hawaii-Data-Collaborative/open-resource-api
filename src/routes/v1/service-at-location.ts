@@ -2,6 +2,8 @@ import Router from '@koa/router'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime'
 import prisma from '../../lib/prisma'
 
+const debug = require('debug')('app:routes:service-at-location')
+
 const router = new Router({
   prefix: '/service-at-location'
 })
@@ -59,6 +61,31 @@ router.get('/:id', async (ctx) => {
       categories.push({ value: tax.Code__c, label: tax.Name })
     }
 
+    let languages: string
+    if (program.Languages_Consistently_Available__c !== null) {
+      switch (program.Languages_Consistently_Available__c) {
+        case 'English Only':
+          languages = 'English'
+          break
+        case 'English and Other (Specify)':
+          languages =
+            'English, ' +
+            (program.Languages_Text__c as string)
+              .replace('English and ', '')
+              .replace('English, ', '')
+              .replace('English; ', '')
+          break
+        default:
+          languages = program.Languages_Consistently_Available__c
+      }
+    } else if (program.Languages_Text__c !== null) {
+      languages = program.Languages_Text__c
+    } else if (program.Languages__c !== null) {
+      languages = program.Languages__c
+    } else {
+      languages = ''
+    }
+
     const result: any = {
       id: siteProgram.id,
       title: `${program.Name} at ${site.Name}`,
@@ -66,7 +93,7 @@ router.get('/:id', async (ctx) => {
       categories,
       phone: program.Program_Phone__c || program.Program_Phone_Text__c,
       website: program.Website__c,
-      languages: program.Languages__c,
+      languages,
       fees: program.Fees_Text__c,
       emergencyInfo: '',
       eligibility: program.Eligibility_Long__c, // || program.Eligibility__c,
@@ -110,6 +137,7 @@ router.get('/:id', async (ctx) => {
 
     ctx.body = result
   } catch (err) {
+    debug(err)
     if (err instanceof PrismaClientKnownRequestError || (err as Error).name === 'NotFoundError') {
       ctx.body = null
     } else {
