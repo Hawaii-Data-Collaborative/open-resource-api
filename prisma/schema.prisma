@@ -639,6 +639,9 @@ model program {
 
   Emergency_Reference__c String?
 
+  Maximum_Age__c String?
+  Minimum_Age__c String?
+
   attributes String?
 }
 
