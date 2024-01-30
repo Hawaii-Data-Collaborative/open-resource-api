@@ -905,7 +905,11 @@ model taxonomy {
   Begins_with_Y__c                         String?
   of_Program_Services__c                   String?
   Coronavirus_Secondary_Taxonomy__c        String?
-  attributes                               String?
+
+  Primary_Category_Search__c   String?
+  Secondary_Category_Search__c String?
+
+  attributes String?
 }
 
 model suggestion {
