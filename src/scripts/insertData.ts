@@ -201,7 +201,7 @@ async function main() {
     await fs.rename(newFile, dbFile)
     console.log('[insertData] rollback due to error, moved %s to %s', newFile, dbFile)
     // prettier-ignore
-    await execAsync(`emailadmins --to="${ADMIN_EMAIL}" --subject="[open-resource-api] insertData.ts error" --body="${(err as Error).stack}"`)
+    await execAsync(`emailadmins --to="${ADMIN_EMAIL}" --subject="[open-resource-api] insertData.ts error" --body="""${(err as Error).stack}"""`)
     throw err
   }
 }
