@@ -13,6 +13,8 @@ import * as util from 'util'
 import dayjs from 'dayjs'
 import prisma from '../lib/prisma'
 
+const { ADMIN_EMAIL } = process.env
+
 const execAsync = util.promisify(exec)
 
 /**
@@ -198,7 +200,8 @@ async function main() {
   } catch (err) {
     await fs.rename(newFile, dbFile)
     console.log('[insertData] rollback due to error, moved %s to %s', newFile, dbFile)
-    await execAsync(`emailadmins -s "[open-resource-api] insertData.ts error" -b "${(err as Error).stack}"`)
+    // prettier-ignore
+    await execAsync(`emailadmins --to="${ADMIN_EMAIL}" --subject="[open-resource-api] insertData.ts error" --body="${(err as Error).stack}"`)
     throw err
   }
 }
