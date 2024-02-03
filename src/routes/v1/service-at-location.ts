@@ -1,6 +1,7 @@
 import Router from '@koa/router'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime'
 import prisma from '../../lib/prisma'
+import { buildHours } from '../../util'
 
 const debug = require('debug')('app:routes:service-at-location')
 
@@ -80,8 +81,6 @@ router.get('/:id', async (ctx) => {
       }
     } else if (program.Languages_Text__c !== null) {
       languages = program.Languages_Text__c
-    } else if (program.Languages__c !== null) {
-      languages = program.Languages__c
     } else {
       languages = ''
     }
@@ -94,10 +93,47 @@ router.get('/:id', async (ctx) => {
         items.add(program.Intake_Procedures_Other__c as string)
       }
       applicationProcess = [...items].join(', ')
-    } else if (program.Intake_Procedure__c !== null) {
-      applicationProcess = program.Intake_Procedure__c
     } else {
       applicationProcess = ''
+    }
+
+    let fees: string
+    if (program.Fees__c) {
+      let allFees = program.Fees__c.split(';')
+      if (allFees.includes('Other')) {
+        allFees = allFees.filter((f) => f !== 'Other')
+        if (program.Fees_Other__c) {
+          allFees.push(program.Fees_Other__c)
+        }
+      }
+      fees = allFees.map((f) => f.trim()).join('; ')
+    } else {
+      fees = ''
+    }
+
+    let schedule: string
+    if (site.Open_24_7__c == '1') {
+      schedule = 'Open 24/7'
+    } else if (
+      site.Open_Time_Monday__c ||
+      site.Open_Time_Tuesday__c ||
+      site.Open_Time_Wednesday__c ||
+      site.Open_Time_Thursday__c ||
+      site.Open_Time_Friday__c ||
+      site.Open_Time_Saturday__c ||
+      site.Open_Time_Sunday__c
+    ) {
+      schedule = [
+        buildHours('Mo', site.Open_Time_Monday__c, site.Close_Time_Monday__c),
+        buildHours('Tu', site.Open_Time_Tuesday__c, site.Close_Time_Tuesday__c),
+        buildHours('We', site.Open_Time_Wednesday__c, site.Close_Time_Wednesday__c),
+        buildHours('Th', site.Open_Time_Thursday__c, site.Close_Time_Thursday__c),
+        buildHours('Fr', site.Open_Time_Friday__c, site.Close_Time_Friday__c),
+        buildHours('Sa', site.Open_Time_Saturday__c, site.Close_Time_Saturday__c),
+        buildHours('Su', site.Open_Time_Sunday__c, site.Close_Time_Sunday__c)
+      ].join('\n')
+    } else {
+      schedule = ''
     }
 
     const result: any = {
@@ -105,14 +141,14 @@ router.get('/:id', async (ctx) => {
       title: `${program.Name} at ${site.Name}`,
       description: program.Service_Description__c,
       categories,
-      phone: program.Program_Phone__c || program.Program_Phone_Text__c,
+      phone: program.Program_Phone_Text__c,
       website: program.Website__c,
       languages,
-      fees: program.Fees_Text__c,
+      fees,
       emergencyInfo: '',
-      eligibility: program.Eligibility_Long__c, // || program.Eligibility__c,
+      eligibility: program.Eligibility_Long__c,
       email: program.Program_Email__c,
-      schedule: program.Hours__c,
+      schedule,
       applicationProcess,
       organizationName: agency.Name,
       organizationDescription: agency.Overview__c,
