@@ -957,6 +957,7 @@ model category {
 
 model user {
   id        Int     @id @default(autoincrement())
+  type      String
   email     String
   password  String
   lastLogin String?
@@ -965,9 +966,9 @@ model user {
 }
 
 model session {
-  id        Int     @id
+  id        String  @id
   userId    Int
   data      String?
-  createdAt String?
   updatedAt String?
+  createdAt String?
 }

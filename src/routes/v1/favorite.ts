@@ -1,6 +1,6 @@
 import Router from '@koa/router'
 import { v4 as uuid } from 'uuid'
-import authorize from '../../middleware/authorize'
+import { loginRequired } from '../../middleware'
 import prisma from '../../lib/prisma'
 
 const router = new Router({
@@ -10,7 +10,7 @@ const router = new Router({
 /**
  * Get all favorites for a specified user (based on current user being authorized)
  */
-router.get('/', authorize(), async (ctx) => {
+router.get('/', loginRequired(), async (ctx) => {
   const userId = ctx.state.user.sub
 
   const favorites = await prisma.favorite.findMany({
@@ -55,7 +55,7 @@ router.get('/', authorize(), async (ctx) => {
  * Get a favorite by ID. The service at location table supports both {service}-{location}
  * and {service} as valid formats for an ID. Depending on the format, the query needs to be slightly different.
  */
-router.get('/:id', authorize(), async (ctx) => {
+router.get('/:id', loginRequired(), async (ctx) => {
   const { id } = ctx.params
   const userId = ctx.state.user.sub
 
@@ -84,7 +84,7 @@ router.get('/:id', authorize(), async (ctx) => {
 /**
  * Create a new favorite based on the currently authorized user.
  */
-router.post('/', authorize(), async (ctx) => {
+router.post('/', loginRequired(), async (ctx) => {
   // @ts-ignore
   const { id } = ctx.request.body
   const userId = ctx.state.user.sub
@@ -116,7 +116,7 @@ router.post('/', authorize(), async (ctx) => {
 /**
  * Delete a favorite based on the currently authorized user.
  */
-router.delete('/:id', authorize(), async (ctx) => {
+router.delete('/:id', loginRequired(), async (ctx) => {
   const { id } = ctx.params
   const userId = ctx.state.user.sub
 
