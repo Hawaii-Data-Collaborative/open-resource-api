@@ -1,5 +1,5 @@
 import Router from '@koa/router'
-import { search } from '../../services/search'
+import { searchService } from '../../services'
 
 const router = new Router({
   prefix: '/search'
@@ -11,7 +11,7 @@ const router = new Router({
 router.get('/', async (ctx) => {
   const searchText = (ctx.query.q as string)?.trim()
   const taxonomies = (ctx.query.taxonomies as string)?.trim()
-  const results = await search({ searchText, taxonomies })
+  const results = await searchService.search({ searchText, taxonomies })
   ctx.body = results
 })
 

@@ -12,6 +12,7 @@ import service from './service'
 import suggestion from './suggestion'
 import organization from './organization'
 import userActivity from './user-activity'
+import auth from './auth'
 
 const router = new Router({
   prefix: '/api/v1'
@@ -29,5 +30,6 @@ router.use(userActivity.routes()).use(userActivity.allowedMethods())
 router.use(relatedSearches.routes()).use(relatedSearches.allowedMethods())
 router.use(category.routes()).use(category.allowedMethods())
 router.use(banner.routes()).use(banner.allowedMethods())
+router.use(auth.routes()).use(auth.allowedMethods())
 
 export default router
