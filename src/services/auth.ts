@@ -1,18 +1,14 @@
 import bcrypt from 'bcrypt'
 import prisma from '../lib/prisma'
 import { BadRequestError } from '../errors'
-import { Context } from 'koa'
 import { getRandomString } from '../util'
 import { user as User } from '@prisma/client'
-import { COOKIE_NAME } from '../constants'
 
 const debug = require('debug')('app:services:auth')
 
-const ONE_YEAR = 1000 * 60 * 60 * 24 * 365
-
 export const hashPassword = (rawpassword: string) => bcrypt.hashSync(rawpassword, 10)
 
-export async function startSession(user: User, ctx: Context) {
+export async function startSession(user: User) {
   const session = await prisma.session.create({
     data: {
       id: getRandomString(),
@@ -23,24 +19,16 @@ export async function startSession(user: User, ctx: Context) {
   })
 
   debug('[signup] created session %s', session.id)
-  ctx.cookies.set(COOKIE_NAME, session.id, {
-    expires: new Date(Date.now() + ONE_YEAR),
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true
-  })
+
   return session
 }
 
-export function endSession(ctx: Context) {
-  ctx.cookies.set(COOKIE_NAME)
-}
-
-export async function signup(email: string, rawpassword: string, ctx: Context) {
+export async function signup(email: string, rawpassword: string) {
   email = email.trim()
   rawpassword = rawpassword.trim()
   const existing = await prisma.user.findFirst({ where: { email } })
   if (existing) {
-    throw new Error('Email in use')
+    throw new BadRequestError('Email in use')
   }
   const password = hashPassword(rawpassword)
 
@@ -56,12 +44,12 @@ export async function signup(email: string, rawpassword: string, ctx: Context) {
 
   debug('[signup] created user %s', user.id)
 
-  const session = await startSession(user, ctx)
+  const session = await startSession(user)
 
   return { user, session }
 }
 
-export async function login(email: string, rawpassword: string, ctx: Context) {
+export async function login(email: string, rawpassword: string) {
   debug('[login] attempt')
   const user = await prisma.user.findFirst({ where: { email } })
   if (!user) {
@@ -73,11 +61,20 @@ export async function login(email: string, rawpassword: string, ctx: Context) {
     debug('[login] fail, userId=%s', user.id)
     throw new BadRequestError('Invalid credentials')
   }
-  const session = await startSession(user, ctx)
+  const session = await startSession(user)
   debug('[login] success, userId=%s', user.id)
   return { user, session }
 }
 
-export async function logout(ctx: Context) {
-  endSession(ctx)
+export async function deleteAccount(user) {
+  debug('[deleteAccount] user.id=%s', user.id)
+  if (user.type === 'ADMIN') {
+    debug('[deleteAccount] user id admin, deny')
+    throw new BadRequestError('Admin accounts must be deleted manually')
+  }
+  const res1 = await prisma.session.deleteMany({ where: { userId: user.id } })
+  debug('[deleteAccount] deleted %s sessions', res1.count)
+  await prisma.user.delete({ where: { id: user.id } })
+  debug('[deleteAccount] deleted user %s', user.id)
+  return { message: 'Your account was successfully deleted.' }
 }

@@ -1,5 +1,6 @@
 export class AppError extends Error {
   status: number
+  exposed = true
 
   constructor(message: string, status: number) {
     super(message)
