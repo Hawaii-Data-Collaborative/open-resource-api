@@ -12,6 +12,7 @@ import * as fs from 'fs/promises'
 import * as util from 'util'
 import dayjs from 'dayjs'
 import prisma from '../lib/prisma'
+import { Agency, Program, ProgramService, Site, SiteProgram, Taxonomy } from '../types'
 
 const { ADMIN_EMAIL } = process.env
 
@@ -25,7 +26,7 @@ const execAsync = util.promisify(exec)
  * - don't convert strings or nulls
  */
 function processData(data: any[]) {
-  const rv = []
+  const rv: any = []
   for (const o of data) {
     const o2: any = { id: o.Id }
     delete o.Id
@@ -55,7 +56,7 @@ export async function insertAgencyData() {
   }
   const { count } = await prisma.agency.deleteMany({})
   console.log('[insertAgencyData] deleted %s rows', count)
-  const result = []
+  const result: Agency[] = []
   for (const data of agencyData) {
     const agency = await prisma.agency.create({ data })
     result.push(agency)
@@ -84,7 +85,7 @@ export async function insertProgramData() {
   }
   const { count } = await prisma.program.deleteMany({})
   console.log('[insertProgramData] deleted %s rows', count)
-  const result = []
+  const result: Program[] = []
   for (const data of programData) {
     if (idToKeywords[data.id]) {
       data.keywords = idToKeywords[data.id]
@@ -114,7 +115,7 @@ export async function insertProgramServiceData() {
   }
   const { count } = await prisma.program_service.deleteMany({})
   console.log('[insertProgramServiceData] deleted %s rows', count)
-  const result = []
+  const result: ProgramService[] = []
   for (const data of programServiceData) {
     const program_service = await prisma.program_service.create({ data })
     result.push(program_service)
@@ -130,7 +131,7 @@ export async function insertSiteData() {
   }
   const { count } = await prisma.site.deleteMany({})
   console.log('[insertSiteData] deleted %s rows', count)
-  const result = []
+  const result: Site[] = []
   for (const data of siteData) {
     const site = await prisma.site.create({ data })
     result.push(site)
@@ -146,7 +147,7 @@ export async function insertSiteProgramData() {
   }
   const { count } = await prisma.site_program.deleteMany({})
   console.log('[insertSiteProgramData] deleted %s rows', count)
-  const result = []
+  const result: SiteProgram[] = []
   for (const data of siteProgramData) {
     const siteProgram = await prisma.site_program.create({ data })
     result.push(siteProgram)
@@ -162,7 +163,7 @@ export async function insertTaxonomyData() {
   }
   const { count } = await prisma.taxonomy.deleteMany({})
   console.log('[insertTaxonomyData] deleted %s rows', count)
-  const result = []
+  const result: Taxonomy[] = []
   for (const data of taxonomyData) {
     const taxonomy = await prisma.taxonomy.create({ data })
     result.push(taxonomy)

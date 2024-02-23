@@ -42,13 +42,11 @@ model eligibility {
 }
 
 model favorite {
-  id                     String  @id
-  user_id                String
-  service_at_location_id String?
-  service_id             String?
-
-  service_at_location service_at_location? @relation(fields: [service_at_location_id], references: [id])
-  service             service?             @relation(fields: [service_id], references: [id])
+  id            Int     @id @default(autoincrement())
+  userId        Int
+  siteProgramId String
+  updatedAt     String?
+  createdAt     String?
 }
 
 model funding {
@@ -299,7 +297,6 @@ model service {
   service_at_location service_at_location[]
   language            language[]
   required_document   required_document[]
-  favorite            favorite[]
 }
 
 model service_area {
@@ -329,7 +326,6 @@ model service_at_location {
   location location? @relation(fields: [location_id], references: [id])
   service  service?  @relation(fields: [service_id], references: [id])
 
-  favorite favorite[]
   contact  contact[]
   phone    phone[]
   schedule schedule[]
@@ -969,6 +965,6 @@ model session {
   id        String  @id
   userId    Int
   data      String?
-  updatedAt String?
   createdAt String?
+  updatedAt String?
 }
