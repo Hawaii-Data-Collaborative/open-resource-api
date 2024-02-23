@@ -486,6 +486,9 @@ model agency {
   Describe_Disaster_Preparedness_Services__c String?
   Mailing_Address_Same_as_Physical__c        String?
 
+  Partner_Agency__c                      String?
+  Partners_In_Care_PIC_Partner_Agency__c String?
+
   attributes String?
 }
 
