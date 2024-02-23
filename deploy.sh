@@ -1,12 +1,28 @@
 #! /usr/bin/env bash
 
+instance=${1:-production}
+echo "[deploy] instance=$instance"
+
+if [[ $instance == "production" ]]; then
+  host=auw1
+  dir=/var/www/searchengine-backend
+elif [[ $instance == "beta" ]]; then
+  host=hdc1
+  dir=/home/hdc/apps/auw211/backend
+else
+  echo "[deploy] invalid instance $instance"
+  exit 1
+fi
+
+echo "[deploy] host=$host dir=$dir"
+
 echo "[deploy] pushing code ..."
 git push
 echo "[deploy] scp'ing ..."
-scp dist.tar.gz auw1:/var/www/searchengine-backend/
+scp dist.tar.gz $host:$dir/
 echo "[deploy] ssh'ing ..."
-ssh auw1 bash << EOF
-cd /var/www/searchengine-backend
+ssh $host bash << EOF
+cd $dir
 echo "[deploy] pulling code ..."
 git pull
 echo "[deploy] installing dependencies ..."

@@ -14,8 +14,9 @@ import organization from './organization'
 import userActivity from './user-activity'
 import auth from './auth'
 
+const BASE_PREFIX = process.env.BASE_PREFIX || ''
 const router = new Router({
-  prefix: '/api/v1'
+  prefix: `${BASE_PREFIX}/api/v1`
 })
 
 router.use(serviceAtlocation.routes()).use(serviceAtlocation.allowedMethods())
