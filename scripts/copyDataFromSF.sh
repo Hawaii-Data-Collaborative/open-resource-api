@@ -17,8 +17,17 @@ node scripts/copyDataFromSF.js Program_Service__c program_service
 
 print "fetched data from Salesforce"
 
+set +e
 npm run insertData
-print "loaded data into sqlite"
+exit_code=$?
+if [ $exit_code -eq 0 ]; then
+  print "loaded data into sqlite"
+else
+  print "[ERROR] insertData failed"
+  sudo ./restart.sh
+  exit $exit_code
+fi
+set -e
 
 npm run processData
 print "postprocessed data in sqlite"
