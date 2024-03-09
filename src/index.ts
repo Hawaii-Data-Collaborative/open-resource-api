@@ -4,6 +4,7 @@ import json from 'koa-json'
 import bodyParser from 'koa-bodyparser'
 import helmet from 'koa-helmet'
 import cors from '@koa/cors'
+import pingRouter from './routes/ping'
 import routerV1 from './routes/v1'
 import { errorHandler } from './middleware'
 
@@ -32,6 +33,7 @@ app.use(bodyParser())
 app.use(errorHandler())
 
 // API Version 1 routes
+app.use(pingRouter.routes())
 app.use(routerV1.routes()).use(routerV1.allowedMethods())
 
 app.listen(PORT, HOSTNAME, () => console.log(`Listening on ${HOSTNAME}:${PORT}`))

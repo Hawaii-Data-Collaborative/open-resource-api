@@ -7,7 +7,7 @@ const router = new Router({
 
 router.get('/', async (ctx) => {
   const { q } = ctx.query
-  const sessionId = ctx.state.session.id
+  const sessionId = ctx.state.sessionId
 
   if (!sessionId || sessionId.length === 0) throw new Error('Invalid session ID')
 
