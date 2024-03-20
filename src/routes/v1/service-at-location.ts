@@ -45,7 +45,7 @@ router.get('/:id', async (ctx) => {
       rejectOnNotFound: true
     })
 
-    const categories = []
+    const categories: any[] = []
     const psList = await prisma.program_service.findMany({
       select: { Taxonomy__c: true },
       where: { Program__c: program.id }

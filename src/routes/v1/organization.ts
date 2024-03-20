@@ -1,15 +1,15 @@
-import Router from '@koa/router';
+import Router from '@koa/router'
 
-import prisma from '../../lib/prisma';
+import prisma from '../../lib/prisma'
 
 const router = new Router({
-  prefix: '/organization',
-});
+  prefix: '/organization'
+})
 
 router.get('/:id', async (ctx) => {
   const organization = await prisma.organization.findFirst({
     where: {
-      id: ctx.params.id,
+      id: ctx.params.id
     },
     include: {
       contact: true,
@@ -17,11 +17,11 @@ router.get('/:id', async (ctx) => {
       location: true,
       phone: true,
       // program: true,
-      service: true,
-    },
-  });
+      service: true
+    }
+  })
 
-  ctx.body = organization;
-});
+  ctx.body = organization
+})
 
-export default router;
+export default router

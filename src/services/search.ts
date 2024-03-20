@@ -43,7 +43,6 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
     }
   }
 
-  const results = []
   let programs: Program[] = []
 
   if (searchText) {
@@ -120,6 +119,12 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
     }
   })
 
+  return buildResults(sitePrograms as SiteProgram[], filteredPrograms)
+}
+
+export async function buildResults(sitePrograms: SiteProgram[], programs?: Program[]) {
+  const results: any = []
+
   const siteIds = sitePrograms.map((sp) => sp.Site__c as string)
   const siteProgramMap: any = {}
   for (const sp of sitePrograms) {
@@ -143,7 +148,12 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
     siteMap[s.id] = s
   }
 
-  const agencyIds = _.compact(filteredPrograms.map((p) => p.Account__c as string))
+  if (!programs) {
+    const programIds = sitePrograms.map((sp) => sp.Program__c) as string[]
+    programs = await prisma.program.findMany({ where: { id: { in: programIds } } })
+  }
+
+  const agencyIds = _.compact(programs.map((p) => p.Account__c))
   const agencies = await prisma.agency.findMany({
     where: {
       id: { in: agencyIds }
@@ -154,7 +164,7 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
     agencyMap[a.id] = a
   }
 
-  for (const p of filteredPrograms) {
+  for (const p of programs) {
     const agency: Agency = agencyMap[p.Account__c as string]
     if (!['Active', 'Active - Online Only'].includes(agency.Status__c as string)) {
       debug('[search] skipping program %s, agency %s status=%s', p.Name, agency.Name, agency.Status__c)

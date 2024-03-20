@@ -32,7 +32,7 @@ export async function getTrendingSearches() {
     }
   }
 
-  const rv = []
+  const rv: any[] = []
   for (const [text, count] of Object.entries(searchTextToCount)) {
     if (rv.length >= settings.trendingMaxShow) {
       break
@@ -129,8 +129,8 @@ export async function getSuccessfulSearchTimelines(searchText: string, currentUs
   for (let [userId, uaList] of Object.entries(groups)) {
     if (!userId) continue
     uaList = _.sortBy(uaList, 'createdAt')
-    const journeys = []
-    let journey = []
+    const journeys: any[] = []
+    let journey: any[] = []
     let prevUa
     for (const ua of uaList) {
       journey.push(ua)

@@ -1,15 +1,15 @@
-import Router from '@koa/router';
+import Router from '@koa/router'
 
 // import elasticsearch from '../../lib/elasticsearch';
 
 const router = new Router({
-  prefix: '/taxonomy',
-});
+  prefix: '/taxonomy'
+})
 
 router.get('/', async (ctx) => {
-  const { q } = ctx.query;
+  const { q } = ctx.query
 
-  if (!q || q.length === 0) throw new Error('Invalid query');
+  if (!q || q.length === 0) throw new Error('Invalid query')
 
   // const taxonomies = await elasticsearch.search({
   //   index: 'taxonomies',
@@ -24,7 +24,7 @@ router.get('/', async (ctx) => {
   //   },
   // });
 
-  ctx.body = [];
-});
+  ctx.body = []
+})
 
-export default router;
+export default router

@@ -1,12 +1,12 @@
 import Router from '@koa/router'
-import { getBanner } from '../../services/banner'
+import { bannerService } from '../../services'
 
 const router = new Router({
   prefix: '/banner'
 })
 
 router.get('/', async (ctx) => {
-  const banner = await getBanner()
+  const banner = await bannerService.getBanner()
   ctx.body = banner
 })
 

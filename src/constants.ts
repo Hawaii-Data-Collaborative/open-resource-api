@@ -11,3 +11,5 @@ export const searchableAttributes = {
     'Fees_Text__c'
   ]
 }
+
+export const COOKIE_NAME = 'Auw211Session'
