@@ -1,12 +1,11 @@
 import Koa from 'koa'
-import logger from 'koa-logger'
 import json from 'koa-json'
 import bodyParser from 'koa-bodyparser'
 import helmet from 'koa-helmet'
 import cors from '@koa/cors'
 import pingRouter from './routes/ping'
 import routerV1 from './routes/v1'
-import { errorHandler } from './middleware'
+import { errorHandler, logger } from './middleware'
 
 const app = new Koa()
 const PORT = Number(process.env.PORT || '3001')
