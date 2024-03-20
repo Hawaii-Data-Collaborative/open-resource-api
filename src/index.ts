@@ -11,16 +11,15 @@ const app = new Koa()
 const PORT = Number(process.env.PORT || '3001')
 const HOSTNAME = process.env.HOSTNAME || 'localhost'
 
+app.use(logger())
+
 // Use proxy in production (required for ctx.hostname to work properly when behind a proxy)
 if (app.env === 'production') {
   app.proxy = true
 }
 
 let corsOptions
-
-// Use logger only in development
 if (app.env === 'development') {
-  app.use(logger())
   corsOptions = { credentials: true }
 }
 
