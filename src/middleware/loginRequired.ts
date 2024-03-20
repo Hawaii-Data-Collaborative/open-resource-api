@@ -1,11 +1,12 @@
 import { Middleware } from 'koa'
 import prisma from '../lib/prisma'
 import { BadRequestError } from '../errors'
+import { decodeToken } from '../util'
 
 function loginRequired(): Middleware {
   return async (ctx, next) => {
     const token = ctx.get('Authorization').replace('Bearer ', '')
-    const sessionId = Buffer.from(token, 'base64').toString('utf-8')
+    const sessionId = decodeToken(token)
     const session = await prisma.session.findFirst({ where: { id: sessionId } })
     if (!session) {
       throw new BadRequestError('Session expired')

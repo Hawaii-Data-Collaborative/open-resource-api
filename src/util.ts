@@ -15,13 +15,20 @@ export function buildHours(prefix: string, open: string | null, close: string | 
   return hours
 }
 
-export function getRandomString(len: number = 30) {
+const ALPHANUMERIC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+const NUMERIC = '0123456789'
+
+export function getRandomString(len: number = 30, characters: 'ALPHANUMERIC' | 'NUMERIC' = 'ALPHANUMERIC') {
   let result = ''
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let i = 0
   while (i < len) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length))
+    const chars = characters === 'ALPHANUMERIC' ? ALPHANUMERIC : NUMERIC
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
     i += 1
   }
   return result
+}
+
+export function decodeToken(token: string) {
+  return Buffer.from(token, 'base64').toString('utf-8')
 }
