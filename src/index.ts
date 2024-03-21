@@ -1,17 +1,21 @@
+import fs from 'fs'
 import Koa from 'koa'
 import json from 'koa-json'
 import bodyParser from 'koa-bodyparser'
 import helmet from 'koa-helmet'
+import morgan from 'koa-morgan'
 import cors from '@koa/cors'
 import pingRouter from './routes/ping'
 import routerV1 from './routes/v1'
-import { errorHandler, logger } from './middleware'
+import { errorHandler } from './middleware'
 
 const app = new Koa()
 const PORT = Number(process.env.PORT || '3001')
 const HOSTNAME = process.env.HOSTNAME || 'localhost'
+const ACCESS_LOG = process.env.ACCESS_LOG || `${process.cwd()}/access.log`
 
-app.use(logger())
+const stream = fs.createWriteStream(ACCESS_LOG, { flags: 'a' })
+app.use(morgan('combined', { stream }))
 
 // Use proxy in production (required for ctx.hostname to work properly when behind a proxy)
 if (app.env === 'production') {
