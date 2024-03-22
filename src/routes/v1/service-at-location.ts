@@ -112,25 +112,25 @@ router.get('/:id', async (ctx) => {
     }
 
     let schedule: string
-    if (site.Open_24_7__c == '1') {
+    if (program.Open_247__c == '1') {
       schedule = 'Open 24/7'
     } else if (
-      site.Open_Time_Monday__c ||
-      site.Open_Time_Tuesday__c ||
-      site.Open_Time_Wednesday__c ||
-      site.Open_Time_Thursday__c ||
-      site.Open_Time_Friday__c ||
-      site.Open_Time_Saturday__c ||
-      site.Open_Time_Sunday__c
+      program.Open_Time_Monday__c ||
+      program.Open_Time_Tuesday__c ||
+      program.Open_Time_Wednesday__c ||
+      program.Open_Time_Thursday__c ||
+      program.Open_Time_Friday__c ||
+      program.Open_Time_Saturday__c ||
+      program.Open_Time_Sunday__c
     ) {
       schedule = [
-        buildHours('Mo', site.Open_Time_Monday__c, site.Close_Time_Monday__c),
-        buildHours('Tu', site.Open_Time_Tuesday__c, site.Close_Time_Tuesday__c),
-        buildHours('We', site.Open_Time_Wednesday__c, site.Close_Time_Wednesday__c),
-        buildHours('Th', site.Open_Time_Thursday__c, site.Close_Time_Thursday__c),
-        buildHours('Fr', site.Open_Time_Friday__c, site.Close_Time_Friday__c),
-        buildHours('Sa', site.Open_Time_Saturday__c, site.Close_Time_Saturday__c),
-        buildHours('Su', site.Open_Time_Sunday__c, site.Close_Time_Sunday__c)
+        buildHours('Mo', program.Open_Time_Monday__c, program.Close_Time_Monday__c),
+        buildHours('Tu', program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c),
+        buildHours('We', program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c),
+        buildHours('Th', program.Open_Time_Thursday__c, program.Close_Time_Thursday__c),
+        buildHours('Fr', program.Open_Time_Friday__c, program.Close_Time_Friday__c),
+        buildHours('Sa', program.Open_Time_Saturday__c, program.Close_Time_Saturday__c),
+        buildHours('Su', program.Open_Time_Sunday__c, program.Close_Time_Sunday__c)
       ].join('\n')
     } else {
       schedule = ''
