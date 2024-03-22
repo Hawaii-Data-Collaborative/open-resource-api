@@ -13,6 +13,7 @@ import * as util from 'util'
 import dayjs from 'dayjs'
 import prisma from '../lib/prisma'
 import { Agency, Program, ProgramService, Site, SiteProgram, Taxonomy } from '../types'
+import * as schema from '../schema'
 
 const { ADMIN_EMAIL } = process.env
 
@@ -58,6 +59,12 @@ export async function insertAgencyData() {
   console.log('[insertAgencyData] deleted %s rows', count)
   const result: Agency[] = []
   for (const data of agencyData) {
+    for (const key of Object.keys(data)) {
+      if (!schema.agency[key]) {
+        console.log('[insertAgencyData] key %s not in schema, remove', key)
+        delete data[key]
+      }
+    }
     const agency = await prisma.agency.create({ data })
     result.push(agency)
   }
@@ -87,6 +94,12 @@ export async function insertProgramData() {
   console.log('[insertProgramData] deleted %s rows', count)
   const result: Program[] = []
   for (const data of programData) {
+    for (const key of Object.keys(data)) {
+      if (!schema.program[key]) {
+        console.log('[insertProgramData] key %s not in schema, remove', key)
+        delete data[key]
+      }
+    }
     if (idToKeywords[data.id]) {
       data.keywords = idToKeywords[data.id]
     }
@@ -117,6 +130,12 @@ export async function insertProgramServiceData() {
   console.log('[insertProgramServiceData] deleted %s rows', count)
   const result: ProgramService[] = []
   for (const data of programServiceData) {
+    for (const key of Object.keys(data)) {
+      if (!schema.program_service[key]) {
+        console.log('[insertProgramServiceData] key %s not in schema, remove', key)
+        delete data[key]
+      }
+    }
     const program_service = await prisma.program_service.create({ data })
     result.push(program_service)
   }
@@ -133,6 +152,12 @@ export async function insertSiteData() {
   console.log('[insertSiteData] deleted %s rows', count)
   const result: Site[] = []
   for (const data of siteData) {
+    for (const key of Object.keys(data)) {
+      if (!schema.site[key]) {
+        console.log('[insertSiteData] key %s not in schema, remove', key)
+        delete data[key]
+      }
+    }
     const site = await prisma.site.create({ data })
     result.push(site)
   }
@@ -149,6 +174,12 @@ export async function insertSiteProgramData() {
   console.log('[insertSiteProgramData] deleted %s rows', count)
   const result: SiteProgram[] = []
   for (const data of siteProgramData) {
+    for (const key of Object.keys(data)) {
+      if (!schema.site_program[key]) {
+        console.log('[insertSiteProgramData] key %s not in schema, remove', key)
+        delete data[key]
+      }
+    }
     const siteProgram = await prisma.site_program.create({ data })
     result.push(siteProgram)
   }
@@ -165,6 +196,12 @@ export async function insertTaxonomyData() {
   console.log('[insertTaxonomyData] deleted %s rows', count)
   const result: Taxonomy[] = []
   for (const data of taxonomyData) {
+    for (const key of Object.keys(data)) {
+      if (!schema.taxonomy[key]) {
+        console.log('[insertTaxonomyData] key %s not in schema, remove', key)
+        delete data[key]
+      }
+    }
     const taxonomy = await prisma.taxonomy.create({ data })
     result.push(taxonomy)
   }
