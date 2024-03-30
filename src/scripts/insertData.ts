@@ -15,9 +15,9 @@ import prisma from '../lib/prisma'
 import { Agency, Program, ProgramService, Site, SiteProgram, Taxonomy } from '../types'
 import * as schema from '../schema'
 
-const { ADMIN_EMAIL } = process.env
-
 const execAsync = util.promisify(exec)
+const { ADMIN_EMAIL } = process.env
+let REPLACE: boolean
 
 /**
  * Everything in our sqlite db is a string, so:
@@ -55,7 +55,9 @@ export async function insertAgencyData() {
     console.log('[insertAgencyData] agencyData is empty, skipping')
     return
   }
-  const { count } = await prisma.agency.deleteMany({})
+  const ids = agencyData.map((x) => x.id)
+  const args: any = REPLACE ? {} : { where: { id: { in: ids } } }
+  const { count } = await prisma.agency.deleteMany(args)
   console.log('[insertAgencyData] deleted %s rows', count)
   const result: Agency[] = []
   for (const data of agencyData) {
@@ -77,6 +79,7 @@ export async function insertProgramData() {
     console.log('[insertProgramData] programData is empty, skipping')
     return
   }
+  const ids = programData.map((x) => x.id)
   const programsWithKeywords = await prisma.program.findMany({
     select: {
       id: true,
@@ -90,7 +93,8 @@ export async function insertProgramData() {
   for (const p of programsWithKeywords) {
     idToKeywords[p.id] = p.keywords
   }
-  const { count } = await prisma.program.deleteMany({})
+  const args: any = REPLACE ? {} : { where: { id: { in: ids } } }
+  const { count } = await prisma.program.deleteMany(args)
   console.log('[insertProgramData] deleted %s rows', count)
   const result: Program[] = []
   for (const data of programData) {
@@ -126,7 +130,9 @@ export async function insertProgramServiceData() {
     console.log('[insertProgramServiceData] siteData is empty, skipping')
     return
   }
-  const { count } = await prisma.program_service.deleteMany({})
+  const ids = programServiceData.map((x) => x.id)
+  const args: any = REPLACE ? {} : { where: { id: { in: ids } } }
+  const { count } = await prisma.program_service.deleteMany(args)
   console.log('[insertProgramServiceData] deleted %s rows', count)
   const result: ProgramService[] = []
   for (const data of programServiceData) {
@@ -148,7 +154,9 @@ export async function insertSiteData() {
     console.log('[insertSiteData] siteData is empty, skipping')
     return
   }
-  const { count } = await prisma.site.deleteMany({})
+  const ids = siteData.map((x) => x.id)
+  const args: any = REPLACE ? {} : { where: { id: { in: ids } } }
+  const { count } = await prisma.site.deleteMany(args)
   console.log('[insertSiteData] deleted %s rows', count)
   const result: Site[] = []
   for (const data of siteData) {
@@ -170,7 +178,9 @@ export async function insertSiteProgramData() {
     console.log('[insertSiteProgramData] siteProgramData is empty, skipping')
     return
   }
-  const { count } = await prisma.site_program.deleteMany({})
+  const ids = siteProgramData.map((x) => x.id)
+  const args: any = REPLACE ? {} : { where: { id: { in: ids } } }
+  const { count } = await prisma.site_program.deleteMany(args)
   console.log('[insertSiteProgramData] deleted %s rows', count)
   const result: SiteProgram[] = []
   for (const data of siteProgramData) {
@@ -192,7 +202,9 @@ export async function insertTaxonomyData() {
     console.log('[insertTaxonomyData] taxonomyData is empty, skipping')
     return
   }
-  const { count } = await prisma.taxonomy.deleteMany({})
+  const ids = taxonomyData.map((x) => x.id)
+  const args: any = REPLACE ? {} : { where: { id: { in: ids } } }
+  const { count } = await prisma.taxonomy.deleteMany(args)
   console.log('[insertTaxonomyData] deleted %s rows', count)
   const result: Taxonomy[] = []
   for (const data of taxonomyData) {
@@ -220,6 +232,8 @@ export async function cleanup() {
 }
 
 async function main() {
+  REPLACE = process.argv.includes('--replace')
+  console.log('[insertData] begin, REPLACE=%s', REPLACE)
   console.log('[insertData] backing up db...')
   const dbFile = './db/db.sqlite3'
   const date = dayjs().format('YYYYMMDD_HHmm')

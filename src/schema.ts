@@ -448,9 +448,9 @@ export const agency = {
   Any_Disaster_Preparedness_Services__c: true,
   Describe_Disaster_Preparedness_Services__c: true,
   Mailing_Address_Same_as_Physical__c: true,
-  Partner_Agency__c: true,
-  Partners_In_Care_PIC_Partner_Agency__c: true,
-  attributes: true
+  Partner_Agency__c: true
+  // Partners_In_Care_PIC_Partner_Agency__c: true,
+  // attributes: true
 }
 
 export const program = {
@@ -596,8 +596,8 @@ export const program = {
   Intake_Procedure_Multiselect__c: true,
   Emergency_Reference__c: true,
   Maximum_Age__c: true,
-  Minimum_Age__c: true,
-  attributes: true
+  Minimum_Age__c: true
+  // attributes: true
 }
 
 export const program_service = {
@@ -751,8 +751,8 @@ export const site = {
   Site_Description__c: true,
   Site_Extension__c: true,
   Special_Hour__c: true,
-  Mailing_Address_Same_as_Physical__c: true,
-  attributes: true
+  Mailing_Address_Same_as_Physical__c: true
+  // attributes: true
 }
 
 export const site_program = {
@@ -814,8 +814,8 @@ export const site_program = {
   Program_ID__c: true,
   Site_Phones__c: true,
   X211_Agency__c: true,
-  Site_Main_Phone__c: true,
-  attributes: true
+  Site_Main_Phone__c: true
+  // attributes: true
 }
 
 export const taxonomy = {
@@ -857,8 +857,8 @@ export const taxonomy = {
   of_Program_Services__c: true,
   Coronavirus_Secondary_Taxonomy__c: true,
   Primary_Category_Search__c: true,
-  Secondary_Category_Search__c: true,
-  attributes: true
+  Secondary_Category_Search__c: true
+  // attributes: true
 }
 
 export const suggestion = {

@@ -1,54 +1,22 @@
 {
-  "parser": "@typescript-eslint/parser",
+  "root": true,
   "env": {
-    "es6": true,
-    "node": true,
-    "jest": true
+    "node": true
   },
-  "plugins": [
-    "@typescript-eslint",
-    "prettier"
-  ],
-  "extends": [
-    "eslint:recommended",
-    "plugin:import/errors",
-    "plugin:import/warnings",
-    "plugin:import/typescript",
-    "plugin:prettier/recommended",
-    "prettier"
-  ],
+  "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "ecmaVersion": 2020,
+    "ecmaVersion": 2018,
     "sourceType": "module"
   },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "plugins": ["@typescript-eslint"],
   "rules": {
-    "prettier/prettier": "off",
-    "@typescript-eslint/no-unused-vars": [
-      "error"
-    ],
-    "no-irregular-whitespace": "off",
-    "linebreak-style": "off",
-    "semi": [
-      0
-    ],
-    "eol-last": [
-      "error",
-      "always"
-    ],
-    "quotes": [
-      "error",
-      "single"
-    ],
-    "no-unused-vars": "off",
-    "no-undef": "off",
-    "import/no-unresolved": "off",
-    "prefer-const": [
-      "error",
-      {
-        "destructuring": "any",
-        "ignoreReadBeforeAssign": false
-      }
-    ],
-    "require-atomic-updates": "off"
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-var-requires": "off"
   }
 }

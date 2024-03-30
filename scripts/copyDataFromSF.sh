@@ -8,12 +8,12 @@ print() {
 
 print "start"
 
-node scripts/copyDataFromSF.js Account agency
-node scripts/copyDataFromSF.js Program__c program
-node scripts/copyDataFromSF.js Site__c site
-node scripts/copyDataFromSF.js Site_Program__c site_program
-node scripts/copyDataFromSF.js Taxonomy__c taxonomy
-node scripts/copyDataFromSF.js Program_Service__c program_service
+node dist/scripts/copyDataFromSF.js Account agency
+node dist/scripts/copyDataFromSF.js Program__c program
+node dist/scripts/copyDataFromSF.js Site__c site
+node dist/scripts/copyDataFromSF.js Site_Program__c site_program
+node dist/scripts/copyDataFromSF.js Taxonomy__c taxonomy
+node dist/scripts/copyDataFromSF.js Program_Service__c program_service
 
 print "fetched data from Salesforce"
 
