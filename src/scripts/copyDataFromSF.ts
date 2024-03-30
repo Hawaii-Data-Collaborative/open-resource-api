@@ -10,11 +10,6 @@ import querystring from 'querystring'
 import * as schema from '../schema'
 import { getAccessToken } from '../salesforce'
 
-const { SF_CONSUMER_KEY, SF_CONSUMER_SECRET } = process.env
-if (!(SF_CONSUMER_KEY && SF_CONSUMER_SECRET)) {
-  throw new Error('SF_CONSUMER_KEY/SF_CONSUMER_SECRET missing')
-}
-
 const BASE_URL = 'https://auw211.my.salesforce.com'
 
 const LAST_SYNC_DATE = fs.readFileSync('./LAST_SYNC', 'utf-8').trim()
