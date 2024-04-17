@@ -132,6 +132,10 @@ router.get('/:id', async (ctx) => {
         buildHours('Saturday', program.Open_Time_Saturday__c, program.Close_Time_Saturday__c),
         buildHours('Sunday', program.Open_Time_Sunday__c, program.Close_Time_Sunday__c)
       ].join('\n')
+
+      if (program.Program_Special_Notes_Hours__c) {
+        schedule+=`<div style="padding-top: 22px">${program.Program_Special_Notes_Hours__c}</div>`
+      }
     } else {
       schedule = ''
     }
