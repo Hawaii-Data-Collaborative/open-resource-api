@@ -124,13 +124,13 @@ router.get('/:id', async (ctx) => {
       program.Open_Time_Sunday__c
     ) {
       schedule = [
-        buildHours('Mo', program.Open_Time_Monday__c, program.Close_Time_Monday__c),
-        buildHours('Tu', program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c),
-        buildHours('We', program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c),
-        buildHours('Th', program.Open_Time_Thursday__c, program.Close_Time_Thursday__c),
-        buildHours('Fr', program.Open_Time_Friday__c, program.Close_Time_Friday__c),
-        buildHours('Sa', program.Open_Time_Saturday__c, program.Close_Time_Saturday__c),
-        buildHours('Su', program.Open_Time_Sunday__c, program.Close_Time_Sunday__c)
+        buildHours('Monday', program.Open_Time_Monday__c, program.Close_Time_Monday__c),
+        buildHours('Tuesday', program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c),
+        buildHours('Wednesday', program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c),
+        buildHours('Thursday', program.Open_Time_Thursday__c, program.Close_Time_Thursday__c),
+        buildHours('Friday', program.Open_Time_Friday__c, program.Close_Time_Friday__c),
+        buildHours('Saturday', program.Open_Time_Saturday__c, program.Close_Time_Saturday__c),
+        buildHours('Sunday', program.Open_Time_Sunday__c, program.Close_Time_Sunday__c)
       ].join('\n')
     } else {
       schedule = ''
