@@ -14,6 +14,7 @@ const PORT = Number(process.env.PORT || '3001')
 const HOSTNAME = process.env.HOSTNAME || 'localhost'
 const ACCESS_LOG = process.env.ACCESS_LOG || `${process.cwd()}/access.log`
 
+morgan.token('remote-addr', (req) => req.headers['x-real-ip'])
 const stream = fs.createWriteStream(ACCESS_LOG, { flags: 'a' })
 app.use(morgan('combined', { stream }))
 
