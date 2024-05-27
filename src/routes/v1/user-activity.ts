@@ -1,19 +1,26 @@
 import Router from '@koa/router'
 
 import prisma from '../../lib/prisma'
+import { ip } from '../../middleware'
 
 interface CreateUserActivityInput {
   userId: string
   event: string
-  data: Object
+  data: any
 }
 
 const router = new Router({
   prefix: '/user-activity'
 })
 
-router.post('/', async (ctx) => {
-  const { userId, event, data } = ctx.request.body as unknown as CreateUserActivityInput
+router.post('/', ip(), async (ctx) => {
+  let { userId, event, data } = ctx.request.body as unknown as CreateUserActivityInput
+  if (!data) {
+    data = {}
+  }
+  if (ctx.state.zip) {
+    data.zip = ctx.state.zip
+  }
 
   await prisma.user_activity.create({
     data: {
