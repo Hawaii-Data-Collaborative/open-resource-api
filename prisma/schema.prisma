@@ -498,6 +498,7 @@ model program {
   OwnerId                             String?
   IsDeleted                           String?
   Name                                String?
+  AccountName                         String?
   CreatedDate                         String?
   CreatedById                         String?
   LastModifiedDate                    String?

@@ -183,18 +183,45 @@ export async function splitProgramTaxonomyColumns() {
   }
 }
 
+export async function populateAccountNameField() {
+  const allAgencies = await prisma.agency.findMany()
+  const agencyMap = {}
+  for (const a of allAgencies) {
+    agencyMap[a.id] = a.Name
+  }
+
+  const programs = await prisma.program.findMany({ where: { OR: [{ AccountName: null }, { AccountName: '' }] } })
+  const updatedPrograms: any[] = []
+  for (const p of programs) {
+    if (p.Account__c && agencyMap[p.Account__c]) {
+      const name = agencyMap[p.Account__c]
+      const updatedProgram = await prisma.program.update({
+        data: { AccountName: name },
+        where: { id: p.id }
+      })
+      updatedPrograms.push(updatedProgram)
+      console.log('[populateAccountNameField] updated program %s, AccountName=%s', p.id, name)
+    }
+  }
+
+  return updatedPrograms
+}
+
 async function main() {
   await replaceAsteriskSeparators()
   await replaceCommaSeparators()
   // await fixNewlines()
   await splitProgramTaxonomyColumns()
+  await populateAccountNameField()
 }
 
-main()
-  .then(() => {
-    process.exit(0)
-  })
-  .catch((err) => {
-    console.error(err)
-    process.exit(1)
-  })
+if (require.main === module) {
+  main()
+    .then(() => {
+      process.exit(0)
+    })
+    .catch((err) => {
+      console.error(err)
+      process.exit(1)
+    })
+}
