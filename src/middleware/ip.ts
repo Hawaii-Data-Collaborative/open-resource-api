@@ -6,6 +6,11 @@ const debug = require('debug')('app:middleware:ip')
 
 function ip(): Middleware {
   return async (ctx, next) => {
+    if (process.env.NODE_ENV !== 'production') {
+      await next()
+      return
+    }
+
     let cookie = ctx.cookies.get(COOKIE_NAME)
     if (cookie) {
       const zip = Buffer.from(cookie, 'base64').toString('ascii')

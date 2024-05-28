@@ -201,6 +201,7 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
       results.push({
         _source: {
           id: sp.id, //
+          active: p.Status__c === 'Active',
           service_name: p.Name, // - service_name, location_name, organization_name
           location_name: locationName,
           physical_address: physicalAddress,
