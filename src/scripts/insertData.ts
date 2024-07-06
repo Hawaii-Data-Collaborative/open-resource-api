@@ -63,7 +63,7 @@ export async function insertAgencyData() {
   for (const data of agencyData) {
     for (const key of Object.keys(data)) {
       if (!schema.agency[key]) {
-        console.log('[insertAgencyData] key %s not in schema, remove', key)
+        // console.log('[insertAgencyData] key %s not in schema, remove', key)
         delete data[key]
       }
     }
@@ -100,7 +100,7 @@ export async function insertProgramData() {
   for (const data of programData) {
     for (const key of Object.keys(data)) {
       if (!schema.program[key]) {
-        console.log('[insertProgramData] key %s not in schema, remove', key)
+        // console.log('[insertProgramData] key %s not in schema, remove', key)
         delete data[key]
       }
     }
@@ -138,7 +138,7 @@ export async function insertProgramServiceData() {
   for (const data of programServiceData) {
     for (const key of Object.keys(data)) {
       if (!schema.program_service[key]) {
-        console.log('[insertProgramServiceData] key %s not in schema, remove', key)
+        // console.log('[insertProgramServiceData] key %s not in schema, remove', key)
         delete data[key]
       }
     }
@@ -162,7 +162,7 @@ export async function insertSiteData() {
   for (const data of siteData) {
     for (const key of Object.keys(data)) {
       if (!schema.site[key]) {
-        console.log('[insertSiteData] key %s not in schema, remove', key)
+        // console.log('[insertSiteData] key %s not in schema, remove', key)
         delete data[key]
       }
     }
@@ -186,7 +186,7 @@ export async function insertSiteProgramData() {
   for (const data of siteProgramData) {
     for (const key of Object.keys(data)) {
       if (!schema.site_program[key]) {
-        console.log('[insertSiteProgramData] key %s not in schema, remove', key)
+        // console.log('[insertSiteProgramData] key %s not in schema, remove', key)
         delete data[key]
       }
     }
@@ -210,7 +210,7 @@ export async function insertTaxonomyData() {
   for (const data of taxonomyData) {
     for (const key of Object.keys(data)) {
       if (!schema.taxonomy[key]) {
-        console.log('[insertTaxonomyData] key %s not in schema, remove', key)
+        // console.log('[insertTaxonomyData] key %s not in schema, remove', key)
         delete data[key]
       }
     }

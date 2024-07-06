@@ -28,13 +28,22 @@ async function findAll(sobjectName, modelName) {
   const token = await getAccessToken()
   const headers = { Authorization: `Bearer ${token}` }
   const res = await fetch(`${BASE_URL}/services/data/v60.0/query?${params}`, { headers })
-  const tmp = await res.json()
+  let data = await res.json()
   if (res.status !== 200) {
-    throw new Error(JSON.stringify(tmp))
+    throw new Error(JSON.stringify(data))
   }
-  const data = tmp.records
-  console.log('[findAll] sobjectName=%s data.length=%s', sobjectName, data.length)
-  return data
+  const allRecords = [...data.records]
+  while (!data.done) {
+    const nextUrl = `${BASE_URL}${data.nextRecordsUrl}`
+    const res = await fetch(nextUrl, { headers })
+    data = await res.json()
+    if (res.status !== 200) {
+      throw new Error(JSON.stringify(data))
+    }
+    allRecords.push(...data.records)
+  }
+  console.log('[findAll] sobjectName=%s allRecords.length=%s', sobjectName, allRecords.length)
+  return allRecords
 }
 
 async function save(tableName, data) {
