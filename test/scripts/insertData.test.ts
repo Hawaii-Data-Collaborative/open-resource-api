@@ -1,4 +1,8 @@
-import { cleanup, insertProgramData, insertProgramServiceData } from '../../src/scripts/insertData'
+import { cleanup, insertProgramData, insertProgramServiceData, main } from '../../src/scripts/insertData'
+
+test('main()', async () => {
+  await main()
+}, 60000)
 
 test('insertProgramData()', async () => {
   await insertProgramData()

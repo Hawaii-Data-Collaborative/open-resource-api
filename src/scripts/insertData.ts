@@ -11,6 +11,7 @@ import { exec } from 'child_process'
 import * as fs from 'fs/promises'
 import * as util from 'util'
 import dayjs from 'dayjs'
+import _ from 'lodash'
 import prisma from '../lib/prisma'
 import { Agency, Program, ProgramService, Site, SiteProgram, Taxonomy } from '../types'
 import * as schema from '../schema'
@@ -77,7 +78,7 @@ let rawProgramData
 
 export async function insertProgramData() {
   rawProgramData = require('../../data/json/program.json')
-  const programData = processData(rawProgramData)
+  const programData = processData(_.cloneDeep(rawProgramData))
   if (!programData.length) {
     console.log('[insertProgramData] programData is empty, skipping')
     return
@@ -236,7 +237,7 @@ export async function cleanup() {
   }
 }
 
-async function main() {
+export async function main() {
   REPLACE = process.argv.includes('--replace')
   console.log('[insertData] begin, REPLACE=%s', REPLACE)
   console.log('[insertData] backing up db...')
