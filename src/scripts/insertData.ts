@@ -73,8 +73,11 @@ export async function insertAgencyData() {
   console.log('[insertAgencyData] inserted %s rows', result.length)
 }
 
+let rawProgramData
+
 export async function insertProgramData() {
-  const programData = processData(require('../../data/json/program.json'))
+  rawProgramData = require('../../data/json/program.json')
+  const programData = processData(rawProgramData)
   if (!programData.length) {
     console.log('[insertProgramData] programData is empty, skipping')
     return
@@ -114,10 +117,10 @@ export async function insertProgramData() {
 }
 
 export async function insertProgramServiceData() {
-  const programData = require('../../data/json/program.json')
-  const programIds = programData.map((o) => o.Id)
+  const programIds = rawProgramData.map((o) => o.Id)
 
   if (programIds.length || REPLACE) {
+    console.log('[insertProgramServiceData] programIds=%j', programIds)
     const args0: any = REPLACE ? {} : { where: { Program__c: { in: programIds } } }
     const { count: count0 } = await prisma.program_service.deleteMany(args0)
     console.log('[insertProgramServiceData] deleted %s rows', count0)
