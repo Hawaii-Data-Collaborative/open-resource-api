@@ -46,6 +46,38 @@ async function findAll(sobjectName, modelName) {
   return allRecords
 }
 
+async function fetchProgramServices(programIds: string[]) {
+  console.log(`[fetchProgramServices] programIds=${programIds.join(',')}`)
+  const fieldsObj: any = { ...schema.program_service }
+  delete fieldsObj.id
+  delete fieldsObj.keywords
+  delete fieldsObj.attributes
+  fieldsObj.Id = true
+  const fieldsStr = Object.keys(fieldsObj).join(',')
+  const params = querystring.stringify({
+    q: `select ${fieldsStr} from Program_Service__c where Program__c in ('${programIds.join("','")}')`
+  })
+  const token = await getAccessToken()
+  const headers = { Authorization: `Bearer ${token}` }
+  const res = await fetch(`${BASE_URL}/services/data/v60.0/query?${params}`, { headers })
+  let data = await res.json()
+  if (res.status !== 200) {
+    throw new Error(JSON.stringify(data))
+  }
+  const allRecords = [...data.records]
+  while (!data.done) {
+    const nextUrl = `${BASE_URL}${data.nextRecordsUrl}`
+    const res = await fetch(nextUrl, { headers })
+    data = await res.json()
+    if (res.status !== 200) {
+      throw new Error(JSON.stringify(data))
+    }
+    allRecords.push(...data.records)
+  }
+  console.log('[fetchProgramServices] allRecords.length=%s', allRecords.length)
+  return allRecords
+}
+
 async function save(tableName, data) {
   const filepath = `data/json/${tableName}.json`
   fs.writeFileSync(filepath, JSON.stringify(data, null, 2))
@@ -55,6 +87,13 @@ async function save(tableName, data) {
 export async function copyDataFromSF(sobjectName, modelName) {
   const data = await findAll(sobjectName, modelName)
   await save(modelName, data)
+
+  if (sobjectName === 'Program__c') {
+    const programIds = data.map((o) => o.Id)
+    const data2 = await fetchProgramServices(programIds)
+    await save('program_service', data2)
+  }
+
   return data
 }
 

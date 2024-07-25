@@ -114,6 +114,15 @@ export async function insertProgramData() {
 }
 
 export async function insertProgramServiceData() {
+  const programData = require('../../data/json/program.json')
+  const programIds = programData.map((o) => o.Id)
+
+  if (programIds.length || REPLACE) {
+    const args0: any = REPLACE ? {} : { where: { Program__c: { in: programIds } } }
+    const { count: count0 } = await prisma.program_service.deleteMany(args0)
+    console.log('[insertProgramServiceData] deleted %s rows', count0)
+  }
+
   const programServiceData = require('../../data/json/program_service.json').map((o: any) => ({
     id: o.Id,
     Program__c: o.Program__c,
@@ -126,14 +135,7 @@ export async function insertProgramServiceData() {
     LastModifiedById: o.LastModifiedById,
     SystemModstamp: o.SystemModstamp
   }))
-  if (!programServiceData.length) {
-    console.log('[insertProgramServiceData] siteData is empty, skipping')
-    return
-  }
-  const ids = programServiceData.map((x) => x.id)
-  const args: any = REPLACE ? {} : { where: { id: { in: ids } } }
-  const { count } = await prisma.program_service.deleteMany(args)
-  console.log('[insertProgramServiceData] deleted %s rows', count)
+
   const result: ProgramService[] = []
   for (const data of programServiceData) {
     for (const key of Object.keys(data)) {
