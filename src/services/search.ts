@@ -51,7 +51,16 @@ export async function search({
   searchTaxonomyIndex = false,
   analyticsUserId
 }: SearchInput = {}) {
-  debug('[search] searchText=%s taxonomies=%s searchTaxonomyIndex=%s', searchText, taxonomies, searchTaxonomyIndex)
+  debug(
+    '[search] searchText=%s taxonomies=%s zipCode=%s radius=%s lat=%s lng=%s searchTaxonomyIndex=%s',
+    searchText,
+    taxonomies,
+    zipCode,
+    radius,
+    lat,
+    lng,
+    searchTaxonomyIndex
+  )
   if (!taxonomiesByCode) {
     debug('[search] populating taxonomiesByCode')
     const arr = await prisma.taxonomy.findMany({ where: { Status__c: { not: 'Inactive' } } })
@@ -74,12 +83,14 @@ export async function search({
     }
 
     if (!programs.length) {
-      const res = await meilisearch.index('program').search(searchText, { limit: 500 })
+      const res = await meilisearch.index('program').search(searchText, { limit: 5000 })
       programs = res.hits as Program[]
       debug('[search] main search found %s programs', programs.length)
 
       if (searchTaxonomyIndex) {
-        const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 500 })
+        const res2 = await meilisearch
+          .index('taxonomy')
+          .search(searchText, { attributesToRetrieve: ['id'], limit: 5000 })
         const taxIds = res2.hits.map((t) => t.id)
         const programs2 = await findProgramsByTaxonomyIds(taxIds)
         debug('[search] found %s additional programs in taxonomy search', programs2.length)
@@ -133,6 +144,7 @@ export async function search({
     const radiusMeters = radius * 1609.34
     const siteDocs = await meilisearch.index('site').search(null, {
       filter: `_geoRadius(${lat}, ${lng}, ${radiusMeters})`,
+      limit: 5000,
       attributesToRetrieve: ['id']
     })
     siteIds = siteDocs.hits.map((s) => s.id)
@@ -313,12 +325,16 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
 export async function instantSearch(searchText: string, userId: string) {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } })
 
-  const res1 = await meilisearch.index('program').search(searchText, { limit: 10 })
+  const res1 = await meilisearch
+    .index('program')
+    .search(searchText, { attributesToRetrieve: ['id', 'Name'], limit: 10 })
   const programs = res1.hits.map((p) => ({ id: p.id, text: p.Name }))
 
   let taxonomies: any[] = []
   if (settings?.enableTaxonomySearches) {
-    const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 10 })
+    const res2 = await meilisearch
+      .index('taxonomy')
+      .search(searchText, { attributesToRetrieve: ['id', 'Name', 'Code__c'], limit: 10 })
     taxonomies = res2.hits.map((t) => ({ id: t.id, text: t.Name, code: t.Code__c }))
   }
 
