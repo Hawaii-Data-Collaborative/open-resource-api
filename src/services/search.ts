@@ -143,7 +143,8 @@ export async function search({
   if (radius > 0 && lat && lng) {
     const radiusMeters = radius * 1609.34
     const siteDocs = await meilisearch.index('site').search(null, {
-      filter: `_geoRadius(${lat}, ${lng}, ${radiusMeters})`,
+      sort: [`_geoPoint(${lat}, ${lng}):asc`],
+      filter: [`_geoRadius(${lat}, ${lng}, ${radiusMeters})`],
       limit: 5000,
       attributesToRetrieve: ['id']
     })
@@ -177,6 +178,18 @@ export async function search({
     programIds.length,
     siteIds?.length
   )
+
+  if (siteIds) {
+    const filteredAndSortedPrograms: any[] = []
+    for (const siteId of siteIds) {
+      const filteredSitePrograms = sitePrograms.filter((sp) => sp.Site__c === siteId)
+      for (const filteredSiteProgram of filteredSitePrograms) {
+        const tmpFilteredPrograms = filteredPrograms.filter((p) => p.id === filteredSiteProgram.Program__c)
+        filteredAndSortedPrograms.push(...tmpFilteredPrograms)
+      }
+    }
+    filteredPrograms = filteredAndSortedPrograms
+  }
 
   if (analyticsUserId) {
     if (tmpSitePrograms?.length && !sitePrograms.length) {
@@ -299,22 +312,21 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
       }
 
       results.push({
-        _source: {
-          id: sp.id, //
-          active: p.Status__c === 'Active',
-          service_name: p.Name, // - service_name, location_name, organization_name
-          location_name: locationName,
-          physical_address: physicalAddress,
-          physical_address_city: site.City__c,
-          physical_address_state: site.State__c,
-          physical_address_postal_code: site.Zip_Code__c,
-          location_latitude: locationLat,
-          location_longitude: locationLon,
-          service_short_description: p.Service_Description__c, // - service_short_description
-          phone: p.Program_Phone_Text__c, //
-          website: p.Website__c //
-        },
-        _score: 1 //
+        id: sp.id, //
+        siteId: sp.Site__c,
+        programId: sp.Program__c,
+        active: p.Status__c === 'Active',
+        service_name: p.Name, // - service_name, location_name, organization_name
+        location_name: locationName,
+        physical_address: physicalAddress,
+        physical_address_city: site.City__c,
+        physical_address_state: site.State__c,
+        physical_address_postal_code: site.Zip_Code__c,
+        location_latitude: locationLat,
+        location_longitude: locationLon,
+        service_short_description: p.Service_Description__c, // - service_short_description
+        phone: p.Program_Phone_Text__c, //
+        website: p.Website__c //
       })
     }
   }
