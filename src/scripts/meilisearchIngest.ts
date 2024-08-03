@@ -1,5 +1,5 @@
 import { DocumentOptions } from 'meilisearch'
-import { filterableAttributes, searchableAttributes } from '../constants'
+import { filterableAttributes, searchableAttributes, sortableAttributes } from '../constants'
 import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
 import stopWords from './stopWords.json'
@@ -47,6 +47,8 @@ async function processSites() {
   console.log('[processSites] addDocuments count=%s task=%s', sites.length, JSON.stringify(task2))
   const task3 = await index.updateFilterableAttributes(filterableAttributes.site)
   console.log('[processSites] task3=%s', JSON.stringify(task3))
+  const task4 = await index.updateSortableAttributes(sortableAttributes.site)
+  console.log('[processSites] task4=%s', JSON.stringify(task4))
 }
 
 async function processPrograms() {

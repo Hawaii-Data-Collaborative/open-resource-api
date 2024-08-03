@@ -11,6 +11,7 @@
     "processData": "node -r dotenv/config dist/scripts/processData.js",
     "meilisearchIngest": "node -r dotenv/config dist/scripts/meilisearchIngest.js",
     "elasticsearchIngest": "node -r dotenv/config dist/scripts/elasticsearchIngest.js",
+    "meilisearchUpdateFilterableAttributes": "node -r dotenv/config dist/scripts/meilisearchUpdateFilterableAttributes.js",
     "meilisearchUpdateSearchableAttributes": "node -r dotenv/config dist/scripts/meilisearchUpdateSearchableAttributes.js",
     "meilisearchUpdateStopWords": "node -r dotenv/config dist/scripts/meilisearchUpdateStopWords.js",
     "printCategorySearchResults": "node -r dotenv/config dist/scripts/printCategorySearchResults.js",
