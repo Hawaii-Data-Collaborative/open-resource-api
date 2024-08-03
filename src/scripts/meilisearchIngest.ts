@@ -1,5 +1,5 @@
 import { DocumentOptions } from 'meilisearch'
-import { searchableAttributes } from '../constants'
+import { filterableAttributes, searchableAttributes, sortableAttributes } from '../constants'
 import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
 import stopWords from './stopWords.json'
@@ -31,10 +31,12 @@ async function processAgencies() {
 async function processSites() {
   const sites = await prisma.site.findMany({ where: { Status__c: { in: ['Active', 'Active - Online Only'] } } })
   for (const site of sites) {
-    const tmp = site as any
-    tmp._geo = {
-      lat: site.Location__Latitude__s,
-      lng: site.Location__Longitude__s
+    if (site.Location__Latitude__s && site.Location__Longitude__s) {
+      // @ts-expect-error
+      site._geo = {
+        lat: site.Location__Latitude__s,
+        lng: site.Location__Longitude__s
+      }
     }
   }
   const index = meilisearch.index('site')
@@ -43,6 +45,10 @@ async function processSites() {
   console.log('[processSites] updateStopWords task=%s', JSON.stringify(task1))
   const task2 = await index.addDocuments(sites, addDocOptions)
   console.log('[processSites] addDocuments count=%s task=%s', sites.length, JSON.stringify(task2))
+  const task3 = await index.updateFilterableAttributes(filterableAttributes.site)
+  console.log('[processSites] task3=%s', JSON.stringify(task3))
+  const task4 = await index.updateSortableAttributes(sortableAttributes.site)
+  console.log('[processSites] task4=%s', JSON.stringify(task4))
 }
 
 async function processPrograms() {

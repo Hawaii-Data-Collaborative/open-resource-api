@@ -13,4 +13,12 @@ export const searchableAttributes = {
   ]
 }
 
+export const filterableAttributes = {
+  site: ['_geo']
+}
+
+export const sortableAttributes = {
+  site: ['_geo']
+}
+
 export const COOKIE_NAME = 'Auw211Session'
