@@ -277,6 +277,8 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
     agencyMap[a.id] = a
   }
 
+  const processedIds = new Set()
+
   for (const p of programs) {
     const agency: Agency = agencyMap[p.Account__c as string]
     if (!['Active', 'Active - Online Only'].includes(agency.Status__c as string)) {
@@ -292,6 +294,12 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
       if (!site) {
         continue
       }
+
+      if (processedIds.has(sp.id)) {
+        debug('[search] sp.id %s in processedIds, skip', sp.id)
+        continue
+      }
+      processedIds.add(sp.id)
 
       const locationName = site.Name
       let physicalAddress = ''
