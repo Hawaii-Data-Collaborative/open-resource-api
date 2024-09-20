@@ -281,8 +281,8 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
 
   for (const p of programs) {
     const agency: Agency = agencyMap[p.Account__c as string]
-    if (!['Active', 'Active - Online Only'].includes(agency.Status__c as string)) {
-      debug('[search] skipping program %s, agency %s status=%s', p.Name, agency.Name, agency.Status__c)
+    if (!agency || !['Active', 'Active - Online Only'].includes(agency.Status__c as string)) {
+      debug('[search] skipping program %s, agency %s status=%s', p.Name, agency?.Name, agency?.Status__c)
       continue
     }
     const spList: SiteProgram[] = siteProgramMap[p.id]

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  {% set title = pageTitle + ' | Aloha United Way' %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
+  <meta name="description" content="{{ pageDescription }}">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="canonical" href="{{ pageURL }}">
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="{{ pageURL }}" />
+  <meta property="og:image" content="{{ pageImage }}">
+  <meta property="og:description" content="{{ pageDescription }}" />
+  <meta property="og:site_name" content="Aloha United Way" />
+  <meta property="og:locale" content="en_US" />
+
+  <meta name="google-site-verification" content="rT_pbuOdYQ4WD_83Dpa7yICwEkAtsu_iLP0pQsqY0f0">
+
+  {% if redirect %}
+  <script>
+    setTimeout(() => {
+      window.location.pathname = window.location.pathname.replace('/sitemap', '')
+    }, 500)
+  </script>
+  {% endif %}
+
+  {% block styles %}{% endblock %}
+</head>
+
+<body>
+  {% block header %}{% endblock %}
+  {% block main %}{% endblock %}
+  {% block footer %}{% endblock %}
+</body>
+
+</html>
