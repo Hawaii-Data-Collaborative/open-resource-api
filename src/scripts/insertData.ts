@@ -179,15 +179,21 @@ export async function insertSiteData() {
 }
 
 export async function insertSiteProgramData() {
+  const programIds = rawProgramData.map((o) => o.Id)
+
+  if (programIds.length || REPLACE) {
+    console.log('[insertSiteProgramData] programIds=%j', programIds)
+    const args0: any = REPLACE ? {} : { where: { Program__c: { in: programIds } } }
+    const { count: count0 } = await prisma.site_program.deleteMany(args0)
+    console.log('[insertSiteProgramData] deleted %s rows', count0)
+  }
+
   const siteProgramData = processData(require('../../data/json/site_program.json'))
   if (!siteProgramData.length) {
     console.log('[insertSiteProgramData] siteProgramData is empty, skipping')
     return
   }
-  const ids = siteProgramData.map((x) => x.id)
-  const args: any = REPLACE ? {} : { where: { id: { in: ids } } }
-  const { count } = await prisma.site_program.deleteMany(args)
-  console.log('[insertSiteProgramData] deleted %s rows', count)
+
   const result: SiteProgram[] = []
   for (const data of siteProgramData) {
     for (const key of Object.keys(data)) {
