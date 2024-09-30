@@ -29,7 +29,7 @@
 {% set crumbs = [['/sitemap', 'Home'], ['/sitemap/programs', 'Programs']] %}
 {% include "_breadcrumbs.html" %}
 
-<h1>{{ program.title }}</h1>
+<h1><a href="https://search.auw211.org/search/{{ program.id }}">{{ program.title }}</a></h1>
 <p style="font-size: 1.1rem;">{{ program.description }}</p>
 
 <div class="section-header">Location Name</div>
