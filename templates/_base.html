@@ -8,7 +8,12 @@
   <title>{{ title }}</title>
   <meta name="description" content="{{ pageDescription }}">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="canonical" href="{{ pageURL }}">
+  {% if pageURL %}
+    <link rel="canonical" href="{{ pageURL }}">
+    {% if redirect %}
+      <meta http-equiv="refresh" content="2; url={{ pageURL }}">
+    {% endif %}
+  {% endif %}
   <meta property="og:title" content="{{ title }}">
   <meta property="og:type" content="website" />
   <meta property="og:url" content="{{ pageURL }}" />
@@ -18,14 +23,6 @@
   <meta property="og:locale" content="en_US" />
 
   <meta name="google-site-verification" content="rT_pbuOdYQ4WD_83Dpa7yICwEkAtsu_iLP0pQsqY0f0">
-
-  {% if redirect %}
-  <script>
-    setTimeout(() => {
-      window.location.pathname = window.location.pathname.replace('/sitemap', '')
-    }, 500)
-  </script>
-  {% endif %}
 
   {% block styles %}{% endblock %}
 </head>
