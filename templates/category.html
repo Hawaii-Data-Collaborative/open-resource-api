@@ -1,0 +1,32 @@
+{% set pageTitle = 'All Categories' %}
+{% set pageDescription = 'Trusted source of social service resources in the state of Hawaiʻi' %}
+{% set pageImage = '/logo.svg' %}
+
+{% extends "_base.html" %}
+
+{% block header %}
+{% include "_header.html" %}
+{% endblock %}
+
+{% block main %}
+{% set crumbs = [['/sitemap', 'Home'], ['/sitemap/categories', 'Categories']] %}
+{% include "_breadcrumbs.html" %}
+
+<h1>Category: {{ category }}</h1>
+<h2>Programs</h2>
+<ul>
+  {% for program in programs %}
+  <li>
+    <a href="/sitemap/programs/{{ program.id }}">{{ program.service_name }}</a>
+  </li>
+  {% endfor %}
+</ul>
+<h2>Taxonomies</h2>
+<ul>
+  {% for taxonomy in taxonomies %}
+  <li>
+    <a href="/sitemap/taxonomies/{{ taxonomy.id }}">{{ taxonomy.Name }}</a>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}

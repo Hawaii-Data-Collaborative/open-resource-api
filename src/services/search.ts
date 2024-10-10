@@ -15,7 +15,7 @@ const debug = require('debug')('app:services:search')
 let taxonomiesByCode: any
 let taxonomiesByName: any
 
-async function findProgramsByTaxonomyIds(taxIds: string[]) {
+export async function findProgramsByTaxonomyIds(taxIds: string[]) {
   const psList = await prisma.program_service.findMany({
     select: { Program__c: true },
     where: { Taxonomy__c: { in: taxIds } }
