@@ -6,6 +6,7 @@ import prisma from '../lib/prisma'
 import { buildResults } from '../services/search'
 
 const BASE_PREFIX = process.env.BASE_PREFIX || ''
+const CACHE_TIME = 1000 * 60 * 10
 const router = new Router({
   prefix: `${BASE_PREFIX}/sitemap`
 })
@@ -33,7 +34,7 @@ router.get('/programs', async (ctx) => {
     cachedPrograms.sort((a, b) => a.service_name.localeCompare(b.service_name))
     setTimeout(() => {
       cachedPrograms = null
-    }, 1000 * 60 * 10)
+    }, CACHE_TIME)
   }
   const html = nunjucks.render('programs.html', { programs: cachedPrograms })
   ctx.body = html
@@ -171,6 +172,28 @@ router.get('/taxonomies/:id', async (ctx) => {
   const searchResults = await buildResults(sitePrograms as any, programs)
   searchResults.sort((a, b) => a.service_name.localeCompare(b.service_name))
   const html = nunjucks.render('taxonomy.html', { taxonomy, programs: searchResults })
+  ctx.body = html
+})
+
+let cachedSearches: any[]
+router.get('/searches', async (ctx) => {
+  if (!cachedSearches) {
+    const rows = await prisma.$queryRaw<{ term: string; count: number }[]>`
+      select json_extract(data, '$.terms') as term, count(*) AS count
+      from user_activity
+      where json_extract(data, '$.terms') is not null
+      group by term
+      order by count desc
+      limit 25
+    `
+
+    cachedSearches = rows.map((r) => ({ label: r.term, url: encodeURIComponent(r.term) }))
+
+    setTimeout(() => {
+      cachedPrograms = null
+    }, CACHE_TIME)
+  }
+  const html = nunjucks.render('searches.html', { searches: cachedSearches })
   ctx.body = html
 })
 
