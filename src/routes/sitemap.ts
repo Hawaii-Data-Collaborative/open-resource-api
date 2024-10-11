@@ -1,12 +1,22 @@
 import querystring from 'querystring'
 import Router from '@koa/router'
 import nunjucks from 'nunjucks'
-import { programService, searchService } from '../services'
+import { searchService } from '../services'
 import prisma from '../lib/prisma'
 import { buildResults } from '../services/search'
 
 const BASE_PREFIX = process.env.BASE_PREFIX || ''
+const PAGE_SIZE = 100
 const CACHE_TIME = 1000 * 60 * 10
+
+function getPaginationInfo(ctx) {
+  let limit = Math.min(Number((ctx.query.limit as string) ?? String(PAGE_SIZE)), PAGE_SIZE)
+  let offset = Number((ctx.query.offset as string) ?? '0')
+  if (isNaN(limit)) limit = PAGE_SIZE
+  if (isNaN(offset)) offset = 0
+  return { limit, offset }
+}
+
 const router = new Router({
   prefix: `${BASE_PREFIX}/sitemap`
 })
@@ -21,8 +31,11 @@ router.get('/about', async (ctx) => {
   ctx.body = html
 })
 
-let cachedPrograms
+let cachedPrograms: any[]
 router.get('/programs', async (ctx) => {
+  const { limit, offset } = getPaginationInfo(ctx)
+  const sort = (ctx.query.sort as string) ?? 'service_name'
+
   if (!cachedPrograms) {
     const programs = await prisma.program.findMany({ where: { Status__c: { not: 'Inactive' } } })
     const programIds = programs.map((p) => p.id)
@@ -31,24 +44,51 @@ router.get('/programs', async (ctx) => {
       where: { Program__c: { in: programIds } }
     })
     cachedPrograms = await buildResults(sitePrograms as any, programs)
-    cachedPrograms.sort((a, b) => a.service_name.localeCompare(b.service_name))
+
     setTimeout(() => {
+      // @ts-expect-error
       cachedPrograms = null
     }, CACHE_TIME)
   }
-  const html = nunjucks.render('programs.html', { programs: cachedPrograms })
-  ctx.body = html
-})
 
-router.get('/programs/:id', async (ctx) => {
-  let program
-  try {
-    program = await programService.getProgramDetails(ctx.params.id)
-  } catch {
-    program = null
+  const sortField = sort.replace('-', '')
+  cachedPrograms.sort((a, b) =>
+    sort.startsWith('-')
+      ? (b[sortField] ?? '').localeCompare(a[sortField])
+      : (a[sortField] ?? '').localeCompare(b[sortField])
+  )
+
+  const page = cachedPrograms.slice(offset, offset + PAGE_SIZE)
+
+  // prettier-ignore
+  const pagination = {
+    prev: offset > 0 ? querystring.stringify({ limit: limit, offset: offset - PAGE_SIZE, sort }) : '',
+    next: page.length > 0 ? querystring.stringify({ limit: limit, offset: offset + PAGE_SIZE, sort }) : '',
+    columns: {
+      service_name: querystring.stringify({ sort: sort === 'service_name' ? '-service_name' : 'service_name' }),
+      location_name: querystring.stringify({ sort: sort === 'location_name' ? '-location_name' : 'location_name' }),
+      physical_address: querystring.stringify({ sort: sort === 'physical_address' ? '-physical_address' : 'physical_address' }),
+      physical_address_city: querystring.stringify({ sort: sort === 'physical_address_city' ? '-physical_address_city' : 'physical_address_city' }),
+      physical_address_state: querystring.stringify({ sort: sort === 'physical_address_state' ? '-physical_address_state' : 'physical_address_state' }),
+      physical_address_postal_code: querystring.stringify({ sort: sort === 'physical_address_postal_code' ? '-physical_address_postal_code' : 'physical_address_postal_code' }),
+      service_short_description: querystring.stringify({ sort: sort === 'service_short_description' ? '-service_short_description' : 'service_short_description' }),
+      phone: querystring.stringify({ sort: sort === 'phone' ? '-phone' : 'phone' }),
+      website: querystring.stringify({ sort: sort === 'website' ? '-website' : 'website' }),
+    },
+    sort: {
+      service_name: sort === 'service_name' ? '↑' : sort === '-service_name' ? '↓' : '',
+      location_name: sort === 'location_name' ? '↑' : sort === '-location_name' ? '↓' : '',
+      physical_address: sort === 'physical_address' ? '↑' : sort === '-physical_address' ? '↓' : '',
+      physical_address_city: sort === 'physical_address_city' ? '↑' : sort === '-physical_address_city' ? '↓' : '',
+      physical_address_state: sort === 'physical_address_state' ? '↑' : sort === '-physical_address_state' ? '↓' : '',
+      physical_address_postal_code: sort === 'physical_address_postal_code' ? '↑' : sort === '-physical_address_postal_code' ? '↓' : '',
+      service_short_description: sort === 'service_short_description' ? '↑' : sort === '-service_short_description' ? '↓' : '',
+      phone: sort === 'phone' ? '↑' : sort === '-phone' ? '↓' : '',
+      website: sort === 'website' ? '↑' : sort === '-website' ? '↓' : ''
+    }
   }
 
-  const html = nunjucks.render('program.html', { program, redirect: process.env.NODE_ENV === 'production' })
+  const html = nunjucks.render('programs.html', { programs: page, pagination })
   ctx.body = html
 })
 
@@ -103,11 +143,7 @@ router.get('/categories/:id', async (ctx) => {
 })
 
 router.get('/taxonomies', async (ctx) => {
-  const pageSize = 100
-  let limit = Math.min(Number((ctx.query.limit as string) ?? String(pageSize)), pageSize)
-  let offset = Number((ctx.query.offset as string) ?? '0')
-  if (isNaN(limit)) limit = pageSize
-  if (isNaN(offset)) offset = 0
+  const { limit, offset } = getPaginationInfo(ctx)
   const sort = (ctx.query.sort as string) ?? 'Name'
 
   const taxonomies = await prisma.taxonomy.findMany({
@@ -144,8 +180,8 @@ router.get('/taxonomies', async (ctx) => {
   }
 
   const pagination = {
-    prev: offset > 0 ? querystring.stringify({ limit: limit, offset: offset - pageSize, sort }) : '',
-    next: taxonomies.length > 0 ? querystring.stringify({ limit: limit, offset: offset + pageSize, sort }) : '',
+    prev: offset > 0 ? querystring.stringify({ limit: limit, offset: offset - PAGE_SIZE, sort }) : '',
+    next: taxonomies.length > 0 ? querystring.stringify({ limit: limit, offset: offset + PAGE_SIZE, sort }) : '',
     columns: {
       name: querystring.stringify({ sort: sort === 'Name' ? '-Name' : 'Name' }),
       code: querystring.stringify({ sort: sort === 'Code__c' ? '-Code__c' : 'Code__c' })
@@ -190,7 +226,8 @@ router.get('/searches', async (ctx) => {
     cachedSearches = rows.map((r) => ({ label: r.term, url: encodeURIComponent(r.term) }))
 
     setTimeout(() => {
-      cachedPrograms = null
+      // @ts-expect-error
+      cachedSearches = null
     }, CACHE_TIME)
   }
   const html = nunjucks.render('searches.html', { searches: cachedSearches })

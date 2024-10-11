@@ -14,9 +14,46 @@
 
 <h1>Programs</h1>
 
-<ul>
-  {% for program in programs %}
-  <li><a href="/sitemap/programs/{{ program.id }}">{{ program.service_name }} at {{ program.location_name }}</a></li>
-  {% endfor %}
-</ul>
+<table>
+  <thead>
+    <tr>
+      <th style="min-width: 15vw;"><a href="/sitemap/programs?{{ pagination.columns.service_name }}">Service Name {{ pagination.sort.service_name }}</a></th>
+      <th style="min-width: 15vw;"><a href="/sitemap/programs?{{ pagination.columns.location_name }}">Location Name {{ pagination.sort.location_name }}</a></th>
+      <th><a href="/sitemap/programs?{{ pagination.columns.physical_address }}">Street Address {{ pagination.sort.physical_address }}</a></th>
+      <th><a href="/sitemap/programs?{{ pagination.columns.physical_address_city }}">City {{ pagination.sort.physical_address_city }}</a></th>
+      <th><a href="/sitemap/programs?{{ pagination.columns.physical_address_state }}">State {{ pagination.sort.physical_address_state }}</a></th>
+      <th><a href="/sitemap/programs?{{ pagination.columns.physical_address_postal_code }}">Zip {{ pagination.sort.physical_address_postal_code }}</a></th>
+      <th style="min-width: 400px;"><a href="/sitemap/programs?{{ pagination.columns.service_short_description }}">Description {{ pagination.sort.service_short_description }}</a></th>
+      <th><a href="/sitemap/programs?{{ pagination.columns.phone }}">Phone {{ pagination.sort.phone }}</a></th>
+      <th style="max-width: 300px;"><a href="/sitemap/programs?{{ pagination.columns.website }}">Website {{ pagination.sort.website }}</a></th>
+    </tr>
+  </thead>
+  <tbody>
+
+    {% for p in programs %}
+    <tr>
+      <td><a href="https://search.auw211.org/search/{{ p.id }}">{{ p.service_name }}</a></td>
+      <td>{{ p.location_name }}</td>
+      <td>{{ p.physical_address }}</td>
+      <td>{{ p.physical_address_city }}</td>
+      <td>{{ p.physical_address_state }}</td>
+      <td>{{ p.physical_address_postal_code }}</td>
+      <td>{{ p.service_short_description }}</td>
+      <td>{{ p.phone }}</td>
+      <td>{{ p.website }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div style="padding: 20px 10px;">
+  {% if pagination.prev %}
+  <a href="/sitemap/programs?{{ pagination.prev }}">Prev</a>
+  &nbsp;&nbsp;
+  {% endif %}
+  {% if pagination.next %}
+  <a href="/sitemap/programs?{{ pagination.next }}">Next</a>
+  {% endif %}
+</div>
+
 {% endblock %}
