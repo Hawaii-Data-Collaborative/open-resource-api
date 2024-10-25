@@ -140,7 +140,10 @@ export async function search({
   const where: any = { Program__c: { in: programIds } }
 
   let siteIds: string[] | null = null
-  if (radius > 0 && lat && lng) {
+  if (lat && lng) {
+    if (radius == null || radius === 0) {
+      radius = 500
+    }
     const radiusMeters = radius * 1609.34
     const siteDocs = await meilisearch.index('site').search(null, {
       sort: [`_geoPoint(${lat}, ${lng}):asc`],
