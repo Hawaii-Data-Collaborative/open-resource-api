@@ -141,13 +141,10 @@ export async function search({
 
   let siteIds: string[] | null = null
   if (lat && lng) {
-    if (radius == null || radius === 0) {
-      radius = 500
-    }
     const radiusMeters = radius * 1609.34
     const siteDocs = await meilisearch.index('site').search(null, {
       sort: [`_geoPoint(${lat}, ${lng}):asc`],
-      filter: [`_geoRadius(${lat}, ${lng}, ${radiusMeters})`],
+      filter: radius > 0 ? [`_geoRadius(${lat}, ${lng}, ${radiusMeters})`] : undefined,
       limit: 5000,
       attributesToRetrieve: ['id']
     })
