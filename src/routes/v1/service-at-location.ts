@@ -1,6 +1,6 @@
 import Router from '@koa/router'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime'
-import { searchService } from '../../services'
+import { programService } from '../../services'
 
 const debug = require('debug')('app:routes:service-at-location')
 
@@ -10,7 +10,7 @@ const router = new Router({
 
 router.get('/:id', async (ctx) => {
   try {
-    const result = await searchService.buildResult(ctx.params.id)
+    const result = await programService.getProgramDetails(ctx.params.id)
     ctx.body = result
   } catch (err) {
     debug(err)

@@ -1,0 +1,17 @@
+{% set pageTitle = 'About' %}
+{% set pageDescription = 'Trusted source of social service resources in the state of Hawaiʻi' %}
+{% set pageImage = '/logo.svg' %}
+
+{% extends "_base.html" %}
+
+{% block header %}
+  {% include "_header.html" %}
+{% endblock %}
+
+{% block main %}
+  {% set crumbs = [['/sitemap', 'Home']] %}
+  {% include "_breadcrumbs.html" %}
+
+  <h1>About AUW 211</h1>
+  <p>We are the best and most-trusted source of social service resources in the state of Hawaiʻi.</p>
+{% endblock %}

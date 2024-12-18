@@ -1,0 +1,65 @@
+{% set pageTitle = program.title %}
+{% set pageDescription = program.description %}
+{% set pageURL = 'https://search.auw211.org/search/' + program.id %}
+{% set pageImage = '/logo.svg' %}
+
+{% extends "_base.html" %}
+
+{% block styles %}
+<style>
+  .section-header {
+    font-weight: 600;
+    color: #666;
+    padding-top: 10px;
+  }
+
+  .schedule {
+    display: flex;
+    flex-direction: column;
+  }
+</style>
+{% endblock %}
+
+{% block header %}
+{% include "_header.html" %}
+{% endblock %}
+
+{% block main %}
+
+{% set crumbs = [['/sitemap', 'Home'], ['/sitemap/programs', 'Programs']] %}
+{% include "_breadcrumbs.html" %}
+
+<h1><a href="https://search.auw211.org/search/{{ program.id }}">{{ program.title }}</a></h1>
+<p style="font-size: 1.1rem;">{{ program.description }}</p>
+
+<div class="section-header">Location Name</div>
+<div>{{ program.locationName }}</div>
+
+<div class="section-header">Phone</div>
+<div>{{ program.phone }}</div>
+
+{% if program.website %}
+<div class="section-header">Website</div>
+<div><a href="{{ program.website }}" target="_blank">{{ program.website }}</a></div>
+{% endif %}
+
+{% if program.email %}
+<div class="section-header">Email</div>
+<div><a href="mailto:{{ program.email }}" target="_blank">{{ program.email }}</a></div>
+{% endif %}
+
+<div class="section-header">Organization Name</div>
+<div>{{ program.organizationName }}</div>
+
+<div class="section-header">Organization Description</div>
+<div>{{ program.organizationDescription }}</div>
+
+<div class="section-header">Service Area</div>
+<div>{{ program.serviceArea }}</div>
+
+<div class="section-header">Schedule</div>
+<div class="schedule">{{ program.schedule | safe }}</div>
+
+<div class="section-header">Eligibility</div>
+<div>{{ program.eligibility }}</div>
+{% endblock %}

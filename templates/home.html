@@ -1,0 +1,20 @@
+{% set pageTitle = 'Home' %}
+{% set pageDescription = 'Trusted source of social service resources in the state of Hawaiʻi' %}
+{% set pageImage = '/logo.svg' %}
+
+{% extends "_base.html" %}
+
+{% block header %}
+{% include "_header.html" %}
+{% endblock %}
+
+{% block main %}
+<ul>
+  <li><a href="/sitemap/searches">Top Searches</a></li>
+  <li><a href="/sitemap/programs">Programs</a></li>
+  <li><a href="/sitemap/categories">Categories</a></li>
+  <li><a href="/sitemap/taxonomies">Taxonomies</a></li>
+  <li><a href="/sitemap/about">About</a></li>
+  <li><a href="https://auw211.org">AUW Home</a></li>
+</ul>
+{% endblock %}

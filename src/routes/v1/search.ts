@@ -6,9 +6,14 @@ const router = new Router({
 })
 
 router.get('/', async (ctx) => {
+  const analyticsUserId = ctx.get('X-UID')
   const searchText = (ctx.query.q as string)?.trim()
   const taxonomies = (ctx.query.taxonomies as string)?.trim()
-  const results = await searchService.search({ searchText, taxonomies })
+  const radius = ctx.query.radius != null ? Number(ctx.query.radius) : undefined
+  const lat = ctx.query.lat != null ? Number(ctx.query.lat) : undefined
+  const lng = ctx.query.lon != null ? Number(ctx.query.lon) : undefined
+  const zipCode = ctx.query.zipCode != null ? Number(ctx.query.zipCode) : undefined
+  const results = await searchService.search({ searchText, taxonomies, radius, lat, lng, zipCode, analyticsUserId })
   ctx.body = results
 })
 

@@ -1,0 +1,23 @@
+{% set pageTitle = 'Top Searches' %}
+{% set pageDescription = 'Trusted source of social service resources in the state of Hawaiʻi' %}
+{% set pageImage = '/logo.svg' %}
+
+{% extends "_base.html" %}
+
+{% block header %}
+{% include "_header.html" %}
+{% endblock %}
+
+{% block main %}
+{% set crumbs = [['/sitemap', 'Home']] %}
+{% include "_breadcrumbs.html" %}
+
+<h1>Top Searches</h1>
+
+<ul>
+  {% for s in searches %}
+  <li><a href="https://search.auw211.org/search?terms={{ s.url }}">{{ s.label }}</a></li>
+  {% endfor %}
+</ul>
+
+{% endblock %}

@@ -11,6 +11,7 @@ import { exec } from 'child_process'
 import * as fs from 'fs/promises'
 import * as util from 'util'
 import dayjs from 'dayjs'
+import _ from 'lodash'
 import prisma from '../lib/prisma'
 import { Agency, Program, ProgramService, Site, SiteProgram, Taxonomy } from '../types'
 import * as schema from '../schema'
@@ -63,7 +64,7 @@ export async function insertAgencyData() {
   for (const data of agencyData) {
     for (const key of Object.keys(data)) {
       if (!schema.agency[key]) {
-        console.log('[insertAgencyData] key %s not in schema, remove', key)
+        // console.log('[insertAgencyData] key %s not in schema, remove', key)
         delete data[key]
       }
     }
@@ -73,8 +74,11 @@ export async function insertAgencyData() {
   console.log('[insertAgencyData] inserted %s rows', result.length)
 }
 
+let rawProgramData
+
 export async function insertProgramData() {
-  const programData = processData(require('../../data/json/program.json'))
+  rawProgramData = require('../../data/json/program.json')
+  const programData = processData(_.cloneDeep(rawProgramData))
   if (!programData.length) {
     console.log('[insertProgramData] programData is empty, skipping')
     return
@@ -100,7 +104,7 @@ export async function insertProgramData() {
   for (const data of programData) {
     for (const key of Object.keys(data)) {
       if (!schema.program[key]) {
-        console.log('[insertProgramData] key %s not in schema, remove', key)
+        // console.log('[insertProgramData] key %s not in schema, remove', key)
         delete data[key]
       }
     }
@@ -114,6 +118,15 @@ export async function insertProgramData() {
 }
 
 export async function insertProgramServiceData() {
+  const programIds = rawProgramData.map((o) => o.Id)
+
+  if (programIds.length || REPLACE) {
+    console.log('[insertProgramServiceData] programIds=%j', programIds)
+    const args0: any = REPLACE ? {} : { where: { Program__c: { in: programIds } } }
+    const { count: count0 } = await prisma.program_service.deleteMany(args0)
+    console.log('[insertProgramServiceData] deleted %s rows', count0)
+  }
+
   const programServiceData = require('../../data/json/program_service.json').map((o: any) => ({
     id: o.Id,
     Program__c: o.Program__c,
@@ -126,19 +139,12 @@ export async function insertProgramServiceData() {
     LastModifiedById: o.LastModifiedById,
     SystemModstamp: o.SystemModstamp
   }))
-  if (!programServiceData.length) {
-    console.log('[insertProgramServiceData] siteData is empty, skipping')
-    return
-  }
-  const ids = programServiceData.map((x) => x.id)
-  const args: any = REPLACE ? {} : { where: { id: { in: ids } } }
-  const { count } = await prisma.program_service.deleteMany(args)
-  console.log('[insertProgramServiceData] deleted %s rows', count)
+
   const result: ProgramService[] = []
   for (const data of programServiceData) {
     for (const key of Object.keys(data)) {
       if (!schema.program_service[key]) {
-        console.log('[insertProgramServiceData] key %s not in schema, remove', key)
+        // console.log('[insertProgramServiceData] key %s not in schema, remove', key)
         delete data[key]
       }
     }
@@ -162,7 +168,7 @@ export async function insertSiteData() {
   for (const data of siteData) {
     for (const key of Object.keys(data)) {
       if (!schema.site[key]) {
-        console.log('[insertSiteData] key %s not in schema, remove', key)
+        // console.log('[insertSiteData] key %s not in schema, remove', key)
         delete data[key]
       }
     }
@@ -173,20 +179,26 @@ export async function insertSiteData() {
 }
 
 export async function insertSiteProgramData() {
+  const programIds = rawProgramData.map((o) => o.Id)
+
+  if (programIds.length || REPLACE) {
+    console.log('[insertSiteProgramData] programIds=%j', programIds)
+    const args0: any = REPLACE ? {} : { where: { Program__c: { in: programIds } } }
+    const { count: count0 } = await prisma.site_program.deleteMany(args0)
+    console.log('[insertSiteProgramData] deleted %s rows', count0)
+  }
+
   const siteProgramData = processData(require('../../data/json/site_program.json'))
   if (!siteProgramData.length) {
     console.log('[insertSiteProgramData] siteProgramData is empty, skipping')
     return
   }
-  const ids = siteProgramData.map((x) => x.id)
-  const args: any = REPLACE ? {} : { where: { id: { in: ids } } }
-  const { count } = await prisma.site_program.deleteMany(args)
-  console.log('[insertSiteProgramData] deleted %s rows', count)
+
   const result: SiteProgram[] = []
   for (const data of siteProgramData) {
     for (const key of Object.keys(data)) {
       if (!schema.site_program[key]) {
-        console.log('[insertSiteProgramData] key %s not in schema, remove', key)
+        // console.log('[insertSiteProgramData] key %s not in schema, remove', key)
         delete data[key]
       }
     }
@@ -210,7 +222,7 @@ export async function insertTaxonomyData() {
   for (const data of taxonomyData) {
     for (const key of Object.keys(data)) {
       if (!schema.taxonomy[key]) {
-        console.log('[insertTaxonomyData] key %s not in schema, remove', key)
+        // console.log('[insertTaxonomyData] key %s not in schema, remove', key)
         delete data[key]
       }
     }
@@ -231,7 +243,7 @@ export async function cleanup() {
   }
 }
 
-async function main() {
+export async function main() {
   REPLACE = process.argv.includes('--replace')
   console.log('[insertData] begin, REPLACE=%s', REPLACE)
   console.log('[insertData] backing up db...')

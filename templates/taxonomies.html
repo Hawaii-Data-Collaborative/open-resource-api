@@ -1,0 +1,46 @@
+{% set pageTitle = 'All Taxonomies' %}
+{% set pageDescription = 'Trusted source of social service resources in the state of Hawaiʻi' %}
+{% set pageImage = '/logo.svg' %}
+
+{% extends "_base.html" %}
+
+{% block header %}
+{% include "_header.html" %}
+{% endblock %}
+
+{% block main %}
+{% set crumbs = [['/sitemap', 'Home']] %}
+{% include "_breadcrumbs.html" %}
+
+<h1>Taxonomies</h1>
+<table>
+  <thead>
+    <tr>
+      <th><a href="/sitemap/taxonomies?{{ pagination.columns.name }}">Name {{ pagination.sort.name }}</a></th>
+      <th><a href="/sitemap/taxonomies?{{ pagination.columns.code }}">Code {{ pagination.sort.code }}</a></th>
+      <th>Definition</th>
+      <th># Programs</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    {% for t in taxonomies %}
+    <tr>
+      <td><a href="/sitemap/taxonomies/{{ t.id }}">{{ t.Name }}</a></td>
+      <td>{{ t.Code__c }}</td>
+      <td>{{ t.Definition__c }}</td>
+      <td>{{ t.programCount }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div style="padding: 20px 10px;">
+  {% if pagination.prev %}
+  <a href="/sitemap/taxonomies?{{ pagination.prev }}">Prev</a>
+  &nbsp;&nbsp;
+  {% endif %}
+  {% if pagination.next %}
+  <a href="/sitemap/taxonomies?{{ pagination.next }}">Next</a>
+  {% endif %}
+</div>
+{% endblock %}

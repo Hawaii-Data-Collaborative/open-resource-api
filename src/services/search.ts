@@ -17,7 +17,7 @@ const debug = require('debug')('app:services:search')
 let taxonomiesByCode: any
 let taxonomiesByName: any
 
-async function findProgramsByTaxonomyIds(taxIds: string[]) {
+export async function findProgramsByTaxonomyIds(taxIds: string[]) {
   const psList = await prisma.program_service.findMany({
     select: { Program__c: true },
     where: { Taxonomy__c: { in: taxIds } }
@@ -32,8 +32,37 @@ async function findProgramsByTaxonomyIds(taxIds: string[]) {
   return programs
 }
 
-export async function search({ searchText = '', taxonomies = '', searchTaxonomyIndex = false } = {}) {
-  debug('[search] searchText=%s taxonomies=%s searchTaxonomyIndex=%s', searchText, taxonomies, searchTaxonomyIndex)
+interface SearchInput {
+  searchText?: string
+  taxonomies?: string
+  zipCode?: number
+  radius?: number
+  lat?: number
+  lng?: number
+  searchTaxonomyIndex?: boolean
+  analyticsUserId?: string
+}
+
+export async function search({
+  searchText = '',
+  taxonomies = '',
+  zipCode = 0,
+  radius = 0,
+  lat = 0,
+  lng = 0,
+  searchTaxonomyIndex = false,
+  analyticsUserId
+}: SearchInput = {}) {
+  debug(
+    '[search] searchText=%s taxonomies=%s zipCode=%s radius=%s lat=%s lng=%s searchTaxonomyIndex=%s',
+    searchText,
+    taxonomies,
+    zipCode,
+    radius,
+    lat,
+    lng,
+    searchTaxonomyIndex
+  )
   if (!taxonomiesByCode) {
     debug('[search] populating taxonomiesByCode')
     const arr = await prisma.taxonomy.findMany({ where: { Status__c: { not: 'Inactive' } } })
@@ -56,12 +85,14 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
     }
 
     if (!programs.length) {
-      const res = await meilisearch.index('program').search(searchText, { limit: 500 })
+      const res = await meilisearch.index('program').search(searchText, { limit: 5000 })
       programs = res.hits as Program[]
       debug('[search] main search found %s programs', programs.length)
 
       if (searchTaxonomyIndex) {
-        const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 500 })
+        const res2 = await meilisearch
+          .index('taxonomy')
+          .search(searchText, { attributesToRetrieve: ['id'], limit: 5000 })
         const taxIds = res2.hits.map((t) => t.id)
         const programs2 = await findProgramsByTaxonomyIds(taxIds)
         debug('[search] found %s additional programs in taxonomy search', programs2.length)
@@ -108,18 +139,100 @@ export async function search({ searchText = '', taxonomies = '', searchTaxonomyI
   }
 
   const programIds = filteredPrograms.map((p) => p.id)
+  const where: any = { Program__c: { in: programIds } }
+
+  let siteIds: string[] | null = null
+  if (lat && lng) {
+    const radiusMeters = radius * 1609.34
+    const siteDocs = await meilisearch.index('site').search(null, {
+      sort: [`_geoPoint(${lat}, ${lng}):asc`],
+      filter: radius > 0 ? [`_geoRadius(${lat}, ${lng}, ${radiusMeters})`] : undefined,
+      limit: 5000,
+      attributesToRetrieve: ['id']
+    })
+    siteIds = siteDocs.hits.map((s) => s.id)
+    debug('[search] geosearch found %s sites', siteIds.length)
+  } else {
+    debug('[search] not filtering by zipCode')
+  }
+
+  let tmpSitePrograms
+
+  if (siteIds) {
+    where.Site__c = { in: siteIds }
+
+    if (analyticsUserId) {
+      tmpSitePrograms = await prisma.site_program.findMany({
+        select: { id: true, Site__c: true, Program__c: true },
+        where: { Program__c: { in: programIds } }
+      })
+    }
+  }
+
   const sitePrograms = await prisma.site_program.findMany({
-    select: {
-      id: true,
-      Site__c: true,
-      Program__c: true
-    },
-    where: {
-      Program__c: {
-        in: programIds
+    select: { id: true, Site__c: true, Program__c: true },
+    where
+  })
+
+  debug(
+    '[search] sitePrograms.length=%s programIds.length=%s siteIds.length=%s',
+    sitePrograms.length,
+    programIds.length,
+    siteIds?.length
+  )
+
+  if (siteIds) {
+    const filteredAndSortedPrograms: any[] = []
+    for (const siteId of siteIds) {
+      const filteredSitePrograms = sitePrograms.filter((sp) => sp.Site__c === siteId)
+      for (const filteredSiteProgram of filteredSitePrograms) {
+        const tmpFilteredPrograms = filteredPrograms.filter((p) => p.id === filteredSiteProgram.Program__c)
+        filteredAndSortedPrograms.push(...tmpFilteredPrograms)
       }
     }
-  })
+    filteredPrograms = filteredAndSortedPrograms
+  }
+
+  if (analyticsUserId) {
+    if (tmpSitePrograms?.length && !sitePrograms.length) {
+      const ua = await prisma.user_activity.create({
+        data: {
+          userId: analyticsUserId,
+          event: 'UnmetNeeds.NoResultNearby',
+          data: JSON.stringify({
+            terms: searchText,
+            taxonomies,
+            zipCode,
+            radius,
+            lat,
+            lng,
+            totalCount: tmpSitePrograms.length
+          }),
+          createdAt: new Date().toJSON(),
+          updatedAt: new Date().toJSON()
+        }
+      })
+      debug('[search] created userActivity id=%s event=%s', ua.id, ua.event)
+    } else if (!sitePrograms.length) {
+      const ua = await prisma.user_activity.create({
+        data: {
+          userId: analyticsUserId,
+          event: 'UnmetNeeds.NoResults',
+          data: JSON.stringify({
+            terms: searchText,
+            taxonomies,
+            zipCode,
+            radius,
+            lat,
+            lng
+          }),
+          createdAt: new Date().toJSON(),
+          updatedAt: new Date().toJSON()
+        }
+      })
+      debug('[search] created userActivity id=%s event=%s', ua.id, ua.event)
+    }
+  }
 
   const results = await buildResults(sitePrograms as SiteProgram[], filteredPrograms)
   resultsCache.set({ searchText, taxonomies }, results)
@@ -168,10 +281,12 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
     agencyMap[a.id] = a
   }
 
+  const processedIds = new Set()
+
   for (const p of programs) {
     const agency: Agency = agencyMap[p.Account__c as string]
-    if (!['Active', 'Active - Online Only'].includes(agency.Status__c as string)) {
-      debug('[search] skipping program %s, agency %s status=%s', p.Name, agency.Name, agency.Status__c)
+    if (!agency || !['Active', 'Active - Online Only'].includes(agency.Status__c as string)) {
+      debug('[search] skipping program %s, agency %s status=%s', p.Name, agency?.Name, agency?.Status__c)
       continue
     }
     const spList: SiteProgram[] = siteProgramMap[p.id]
@@ -183,6 +298,12 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
       if (!site) {
         continue
       }
+
+      if (processedIds.has(sp.id)) {
+        debug('[search] sp.id %s in processedIds, skip', sp.id)
+        continue
+      }
+      processedIds.add(sp.id)
 
       const locationName = site.Name
       let physicalAddress = ''
@@ -203,21 +324,21 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
       }
 
       results.push({
-        _source: {
-          id: sp.id, //
-          service_name: p.Name, // - service_name, location_name, organization_name
-          location_name: locationName,
-          physical_address: physicalAddress,
-          physical_address_city: site.City__c,
-          physical_address_state: site.State__c,
-          physical_address_postal_code: site.Zip_Code__c,
-          location_latitude: locationLat,
-          location_longitude: locationLon,
-          service_short_description: p.Service_Description__c, // - service_short_description
-          phone: p.Program_Phone_Text__c, //
-          website: p.Website__c //
-        },
-        _score: 1 //
+        id: sp.id, //
+        siteId: sp.Site__c,
+        programId: sp.Program__c,
+        active: p.Status__c === 'Active',
+        service_name: p.Name, // - service_name, location_name, organization_name
+        location_name: locationName,
+        physical_address: physicalAddress,
+        physical_address_city: site.City__c,
+        physical_address_state: site.State__c,
+        physical_address_postal_code: site.Zip_Code__c,
+        location_latitude: locationLat,
+        location_longitude: locationLon,
+        service_short_description: p.Service_Description__c, // - service_short_description
+        phone: p.Program_Phone_Text__c, //
+        website: p.Website__c //
       })
     }
   }
@@ -415,19 +536,17 @@ export async function buildResult(siteProgramId: string, meta = false) {
 export async function instantSearch(searchText: string, userId: string) {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } })
 
-  const res1 = await meilisearch.index('program').search(searchText, { limit: 10 })
-  const programs = _.uniqBy(
-    res1.hits.map((p) => ({ id: p.id, text: p.Name })),
-    'text'
-  )
+  const res1 = await meilisearch
+    .index('program')
+    .search(searchText, { attributesToRetrieve: ['id', 'Name'], limit: 10 })
+  const programs = res1.hits.map((p) => ({ id: p.id, text: p.Name }))
 
   let taxonomies: any[] = []
   if (settings?.enableTaxonomySearches) {
-    const res2 = await meilisearch.index('taxonomy').search(searchText, { limit: 10 })
-    taxonomies = _.uniqBy(
-      res2.hits.map((t) => ({ id: t.id, text: t.Name, code: t.Code__c })),
-      'text'
-    )
+    const res2 = await meilisearch
+      .index('taxonomy')
+      .search(searchText, { attributesToRetrieve: ['id', 'Name', 'Code__c'], limit: 10 })
+    taxonomies = res2.hits.map((t) => ({ id: t.id, text: t.Name, code: t.Code__c }))
   }
 
   let trendingSearches: any[] = []
