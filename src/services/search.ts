@@ -50,8 +50,20 @@ interface SearchOptions {
 function filterResults(results: any[], facets: any, filters: any) {
   let filteredResults = results
   if (filters.openNow) {
-    filteredResults = results.filter((r) => facets.openNow.includes(r.id))
+    filteredResults = filteredResults.filter((r) => facets.openNow.includes(r.id))
   }
+
+  const languages = Object.keys(filters)
+    .filter((k) => k.startsWith('Language.'))
+    .map((k) => k.split('.')[1])
+
+  if (languages.length) {
+    filteredResults = filteredResults.filter((r) => {
+      const tokens = r.languages.split(',').map((s) => s.trim())
+      return languages.some((lang) => tokens.includes(lang))
+    })
+  }
+
   return filteredResults
 }
 
@@ -61,11 +73,18 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
 
   debug('[search] input=%j options=%j', input, options)
 
-  const cachedResults = resultsCache.get(input)
-  const cachedFilters = filtersCache.get(input)
+  const cacheKey = { ...input, filters: undefined }
+  const cachedResults = resultsCache.get(cacheKey)
+  const cachedFilters = filtersCache.get(cacheKey)
 
-  if (cachedResults && cachedFilters && !_.isEmpty(filters)) {
-    return filterResults(cachedResults, cachedFilters, filters)
+  if (cachedResults) {
+    if (_.isEmpty(filters)) {
+      debug('[search] no filters, returning all results')
+      return cachedResults
+    } else if (cachedFilters) {
+      debug('[search] yes filters, call filterResults')
+      return filterResults(cachedResults, cachedFilters, filters)
+    }
   }
 
   if (!taxonomiesByCode) {
@@ -240,15 +259,15 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
   }
 
   const results = await buildResults(sitePrograms as SiteProgram[], filteredPrograms)
-  resultsCache.set(input, results)
+  resultsCache.set(cacheKey, results)
 
   if (_.isEmpty(filters)) {
     debug('[search] no filters, returning all results')
     return results
   } else {
     debug('[search] yes filters, get facets')
-    await getFilters(input, options)
-    const cachedFilters = filtersCache.get(input)
+    await getFacets(input, options)
+    const cachedFilters = filtersCache.get(cacheKey)
     if (cachedFilters) {
       debug('[search] yes facets, filter results')
       return filterResults(results, cachedFilters, filters)
@@ -358,7 +377,13 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
         location_longitude: locationLon,
         service_short_description: p.Service_Description__c, // - service_short_description
         phone: p.Program_Phone_Text__c, //
-        website: p.Website__c //
+        website: p.Website__c, //
+        categories: await getCategories(p),
+        languages: getLanguages(p),
+        fees: getFees(p),
+        schedule: getSchedule(p),
+        applicationProcess: getApplicationProcess(p),
+        serviceArea: getServiceArea(p)
       })
     }
   }
@@ -401,119 +426,23 @@ export async function buildResult(siteProgramId: string, meta = false) {
     rejectOnNotFound: true
   })
 
-  const categories: any[] = []
-  const psList = await prisma.program_service.findMany({
-    select: { Taxonomy__c: true },
-    where: { Program__c: program.id }
-  })
-  const taxIds = psList.map((ps) => ps.Taxonomy__c)
-  const taxList = await prisma.taxonomy.findMany({
-    select: { Name: true, Code__c: true },
-    where: {
-      id: { in: taxIds },
-      Status__c: { not: 'Inactive' }
-    }
-  })
-  for (const tax of taxList) {
-    categories.push({ value: tax.Code__c, label: tax.Name })
-  }
-
-  let languages: string
-  if (program.Languages_Consistently_Available__c !== null) {
-    switch (program.Languages_Consistently_Available__c) {
-      case 'English Only':
-        languages = 'English'
-        break
-      case 'English and Other (Specify)':
-        languages =
-          'English, ' +
-          (program.Languages_Text__c as string)
-            .replace('English and ', '')
-            .replace('English, ', '')
-            .replace('English; ', '')
-        break
-      default:
-        languages = program.Languages_Consistently_Available__c
-    }
-  } else if (program.Languages_Text__c !== null) {
-    languages = program.Languages_Text__c
-  } else {
-    languages = ''
-  }
-
-  let applicationProcess: string
-  if (program.Intake_Procedure_Multiselect__c !== null) {
-    const items = new Set(program.Intake_Procedure_Multiselect__c.split(';'))
-    if (items.has('Other (specify)')) {
-      items.delete('Other (specify)')
-      items.add(program.Intake_Procedures_Other__c as string)
-    }
-    applicationProcess = [...items].join(', ')
-  } else {
-    applicationProcess = ''
-  }
-
-  let fees: string
-  if (program.Fees__c) {
-    let allFees = program.Fees__c.split(';')
-    if (allFees.includes('Other')) {
-      allFees = allFees.filter((f) => f !== 'Other')
-      if (program.Fees_Other__c) {
-        allFees.push(program.Fees_Other__c)
-      }
-    }
-    fees = allFees.map((f) => f.trim()).join('; ')
-  } else {
-    fees = ''
-  }
-
-  let schedule: string
-  if (program.Open_247__c == '1') {
-    schedule = 'Open 24/7'
-  } else if (
-    program.Open_Time_Monday__c ||
-    program.Open_Time_Tuesday__c ||
-    program.Open_Time_Wednesday__c ||
-    program.Open_Time_Thursday__c ||
-    program.Open_Time_Friday__c ||
-    program.Open_Time_Saturday__c ||
-    program.Open_Time_Sunday__c
-  ) {
-    schedule = [
-      buildHours('Mo', program.Open_Time_Monday__c, program.Close_Time_Monday__c),
-      buildHours('Tu', program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c),
-      buildHours('We', program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c),
-      buildHours('Th', program.Open_Time_Thursday__c, program.Close_Time_Thursday__c),
-      buildHours('Fr', program.Open_Time_Friday__c, program.Close_Time_Friday__c),
-      buildHours('Sa', program.Open_Time_Saturday__c, program.Close_Time_Saturday__c),
-      buildHours('Su', program.Open_Time_Sunday__c, program.Close_Time_Sunday__c)
-    ].join('\n')
-  } else {
-    schedule = ''
-  }
-
   const result: any = {
     id: siteProgram.id,
     title: `${program.Name} at ${site.Name}`,
     description: program.Service_Description__c,
-    categories,
     phone: program.Program_Phone_Text__c,
     website: program.Website__c,
-    languages,
-    fees,
     emergencyInfo: '',
     eligibility: program.Eligibility_Long__c,
     email: program.Program_Email__c,
-    schedule,
-    applicationProcess,
     organizationName: agency.Name,
     organizationDescription: agency.Overview__c,
-    serviceArea:
-      program.ServiceArea__c == null
-        ? null
-        : program.ServiceArea__c.toLowerCase().includes('all islands')
-        ? 'All islands'
-        : program.ServiceArea__c.replaceAll(';', ', ')
+    categories: await getCategories(program),
+    languages: getLanguages(program),
+    fees: getFees(program),
+    schedule: getSchedule(program),
+    applicationProcess: getApplicationProcess(program),
+    serviceArea: getServiceArea(program)
   }
 
   if (!site.Billing_Address_is_Confidential__c || site.Billing_Address_is_Confidential__c == '0') {
@@ -551,6 +480,125 @@ export async function buildResult(siteProgramId: string, meta = false) {
   }
 
   return result
+}
+
+async function getCategories(program: Program) {
+  const categories: any[] = []
+  const psList = await prisma.program_service.findMany({
+    select: { Taxonomy__c: true },
+    where: { Program__c: program.id }
+  })
+  const taxIds = psList.map((ps) => ps.Taxonomy__c)
+  const taxList = await prisma.taxonomy.findMany({
+    select: { Name: true, Code__c: true },
+    where: {
+      id: { in: taxIds },
+      Status__c: { not: 'Inactive' }
+    }
+  })
+  for (const tax of taxList) {
+    categories.push({ value: tax.Code__c, label: tax.Name })
+  }
+
+  return categories
+}
+
+function getLanguages(program: Program) {
+  let languages: string
+  if (program.Languages_Consistently_Available__c !== null) {
+    switch (program.Languages_Consistently_Available__c) {
+      case 'English Only':
+        languages = 'English'
+        break
+      case 'English and Other (Specify)':
+        languages =
+          'English, ' +
+          (program.Languages_Text__c as string)
+            .replace('English and ', '')
+            .replace('English, ', '')
+            .replace('English; ', '')
+        break
+      default:
+        languages = program.Languages_Consistently_Available__c
+    }
+  } else if (program.Languages_Text__c !== null) {
+    languages = program.Languages_Text__c
+  } else {
+    languages = ''
+  }
+
+  return languages
+}
+
+function getApplicationProcess(program: Program) {
+  let applicationProcess: string
+  if (program.Intake_Procedure_Multiselect__c !== null) {
+    const items = new Set(program.Intake_Procedure_Multiselect__c.split(';'))
+    if (items.has('Other (specify)')) {
+      items.delete('Other (specify)')
+      items.add(program.Intake_Procedures_Other__c as string)
+    }
+    applicationProcess = [...items].join(', ')
+  } else {
+    applicationProcess = ''
+  }
+
+  return applicationProcess
+}
+
+function getFees(program: Program) {
+  let fees: string
+  if (program.Fees__c) {
+    let allFees = program.Fees__c.split(';')
+    if (allFees.includes('Other')) {
+      allFees = allFees.filter((f) => f !== 'Other')
+      if (program.Fees_Other__c) {
+        allFees.push(program.Fees_Other__c)
+      }
+    }
+    fees = allFees.map((f) => f.trim()).join('; ')
+  } else {
+    fees = ''
+  }
+
+  return fees
+}
+
+function getSchedule(program: Program) {
+  let schedule: string
+  if (program.Open_247__c == '1') {
+    schedule = 'Open 24/7'
+  } else if (
+    program.Open_Time_Monday__c ||
+    program.Open_Time_Tuesday__c ||
+    program.Open_Time_Wednesday__c ||
+    program.Open_Time_Thursday__c ||
+    program.Open_Time_Friday__c ||
+    program.Open_Time_Saturday__c ||
+    program.Open_Time_Sunday__c
+  ) {
+    schedule = [
+      buildHours('Mo', program.Open_Time_Monday__c, program.Close_Time_Monday__c),
+      buildHours('Tu', program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c),
+      buildHours('We', program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c),
+      buildHours('Th', program.Open_Time_Thursday__c, program.Close_Time_Thursday__c),
+      buildHours('Fr', program.Open_Time_Friday__c, program.Close_Time_Friday__c),
+      buildHours('Sa', program.Open_Time_Saturday__c, program.Close_Time_Saturday__c),
+      buildHours('Su', program.Open_Time_Sunday__c, program.Close_Time_Sunday__c)
+    ].join('\n')
+  } else {
+    schedule = ''
+  }
+
+  return schedule
+}
+
+function getServiceArea(program: Program) {
+  return program.ServiceArea__c == null
+    ? null
+    : program.ServiceArea__c.toLowerCase().includes('all islands')
+    ? 'All islands'
+    : program.ServiceArea__c.replaceAll(';', ', ')
 }
 
 export async function instantSearch(searchText: string, userId: string) {
@@ -593,37 +641,44 @@ export async function instantSearch(searchText: string, userId: string) {
   return suggestions
 }
 
-export async function getFilters(input: SearchInput = {}, options: SearchOptions = {}) {
-  debug('[getFilters] input=%j options=%j', input, options)
+export async function getFacets(input: SearchInput = {}, options: SearchOptions = {}) {
+  debug('[getFacets] input=%j options=%j', input, options)
 
-  let cachedFilters = filtersCache.get(input)
+  const cacheKey = { ...input, filters: undefined }
+  let cachedFilters = filtersCache.get(cacheKey)
 
   if (!cachedFilters) {
-    let cachedResults = resultsCache.get(input)
+    let cachedResults = resultsCache.get(cacheKey)
     let numRetries = 1
     while (!cachedResults) {
       if (numRetries < 3) {
-        debug('[getFilters] sleep for 2s, numRetries=%s', numRetries)
+        debug('[getFacets] sleep for 2s, numRetries=%s', numRetries)
         await wait(2000)
-        cachedResults = resultsCache.get(input)
+        cachedResults = resultsCache.get(cacheKey)
         if (cachedResults) {
-          debug('[getFilters] got cachedResults after sleep, numRetries=%s', numRetries)
+          debug('[getFacets] got cachedResults after sleep, numRetries=%s', numRetries)
         } else {
-          debug('[getFilters] still no cachedResults after sleep, numRetries=%s', numRetries)
+          debug('[getFacets] still no cachedResults after sleep, numRetries=%s', numRetries)
         }
         numRetries++
       } else {
-        debug('[getFilters] no luck, numRetries=%s', numRetries)
+        debug('[getFacets] no luck, numRetries=%s', numRetries)
         return null
       }
     }
 
-    debug('[getFilters] cachedResults.length=%s', cachedResults.length)
+    debug('[getFacets] cachedResults.length=%s', cachedResults.length)
 
     const resultsPromise = cachedResults.map((r) => buildResult(r.id, true))
     const results = await Promise.all(resultsPromise)
-    const filters: any = {
-      openNow: []
+    const facets: any = {
+      openNow: [],
+      groups: []
+    }
+
+    const languageGroup = { name: 'Language', items: [] as any[] }
+    if (results.some((r) => !!r.languages)) {
+      facets.groups.push(languageGroup)
     }
 
     for (const result of results) {
@@ -631,6 +686,9 @@ export async function getFilters(input: SearchInput = {}, options: SearchOptions
       if (!program) {
         continue
       }
+
+      // openNow facet
+
       const allhours = [
         [program.Open_Time_Sunday__c, program.Close_Time_Sunday__c],
         [program.Open_Time_Monday__c, program.Close_Time_Monday__c],
@@ -651,18 +709,39 @@ export async function getFilters(input: SearchInput = {}, options: SearchOptions
         }
         const now = new Date()
         if (now >= open && now <= close) {
-          filters.openNow.push(result.id)
+          facets.openNow.push(result.id)
+        }
+      }
+
+      // languages facet
+
+      if (result.languages) {
+        const tokens = result.languages.split(',').map((s) => s.trim())
+        for (const lang of tokens) {
+          let item = languageGroup.items.find((i) => i.name === lang)
+          if (item) {
+            item.ids.push(result.id)
+          } else {
+            languageGroup.items.push({ name: lang, ids: [result.id] })
+          }
         }
       }
     }
 
-    filtersCache.set(input, filters)
+    filtersCache.set(cacheKey, facets)
 
-    cachedFilters = filters
+    cachedFilters = facets
   }
 
   const rv = {
-    openNow: cachedFilters.openNow.length > 0
+    openNow: cachedFilters.openNow.length > 0,
+    groups: cachedFilters.groups.map((g) => ({
+      name: g.name,
+      items: g.items.map((i) => ({
+        name: i.name,
+        count: i.ids.length
+      }))
+    }))
   }
 
   return rv

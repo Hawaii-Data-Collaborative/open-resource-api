@@ -23,10 +23,10 @@ router.get('/', async (ctx) => {
   ctx.body = rv
 })
 
-router.get('/filters', async (ctx) => {
+router.get('/facets', async (ctx) => {
   const analyticsUserId = ctx.get('X-UID')
   const input = parseQuery(ctx.query)
-  const rv = await searchService.getFilters(input, { analyticsUserId })
+  const rv = await searchService.getFacets(input, { analyticsUserId })
   ctx.body = rv
 })
 
