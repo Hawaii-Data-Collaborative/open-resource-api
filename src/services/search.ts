@@ -10,7 +10,7 @@ import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
 import { getRelatedSearches, getTrendingSearches } from './trends'
 import { filtersCache, resultsCache } from '../cache'
-import { buildHours, timeStringToDate } from '../util'
+import { buildHours, timeStringToDate, wait } from '../util'
 
 const debug = require('debug')('app:services:search')
 
@@ -39,30 +39,35 @@ interface SearchInput {
   radius?: number
   lat?: number
   lng?: number
+  filters?: any
+}
+
+interface SearchOptions {
   searchTaxonomyIndex?: boolean
   analyticsUserId?: string
 }
 
-export async function search({
-  searchText = '',
-  taxonomies = '',
-  zipCode = 0,
-  radius = 0,
-  lat = 0,
-  lng = 0,
-  searchTaxonomyIndex = false,
-  analyticsUserId
-}: SearchInput = {}) {
-  debug(
-    '[search] searchText=%s taxonomies=%s zipCode=%s radius=%s lat=%s lng=%s searchTaxonomyIndex=%s',
-    searchText,
-    taxonomies,
-    zipCode,
-    radius,
-    lat,
-    lng,
-    searchTaxonomyIndex
-  )
+function filterResults(results: any[], filters: any) {
+  let filteredResults = results
+  if (filters.openNow) {
+    filteredResults = results.filter((r) => filters.openNow.includes(r.id))
+  }
+  return filteredResults
+}
+
+export async function search(input: SearchInput = {}, options: SearchOptions = {}) {
+  const { searchText = '', taxonomies = '', zipCode = 0, radius = 0, lat = 0, lng = 0, filters = null } = input
+  const { analyticsUserId, searchTaxonomyIndex = false } = options
+
+  debug('[search] input=%j options=%j', input, options)
+
+  const cachedResults = resultsCache.get(input)
+  const cachedFilters = filtersCache.get(input)
+
+  if (cachedResults && cachedFilters && !_.isEmpty(filters)) {
+    return filterResults(cachedResults, filters)
+  }
+
   if (!taxonomiesByCode) {
     debug('[search] populating taxonomiesByCode')
     const arr = await prisma.taxonomy.findMany({ where: { Status__c: { not: 'Inactive' } } })
@@ -235,8 +240,8 @@ export async function search({
   }
 
   const results = await buildResults(sitePrograms as SiteProgram[], filteredPrograms)
-  resultsCache.set({ searchText, taxonomies }, results)
-  return results
+  resultsCache.set(input, results)
+  return _.isEmpty(filters) ? results : filterResults(results, filters)
 }
 
 export async function buildResults(sitePrograms: SiteProgram[], programs?: Program[]) {
@@ -573,46 +578,77 @@ export async function instantSearch(searchText: string, userId: string) {
   return suggestions
 }
 
-export async function getFilters(searchText = '', taxonomies = '') {
-  let value = filtersCache.get({ searchText, taxonomies })
-  if (value) {
-    return value
-  }
-  value = resultsCache.get({ searchText, taxonomies })
-  if (!value) {
-    return []
-  }
+export async function getFilters(input: SearchInput = {}, options: SearchOptions = {}) {
+  debug('[getFilters] input=%j options=%j', input, options)
 
-  const resultsPromise = value.map((r) => buildResult(r._source.id, true))
-  const results = await Promise.all(resultsPromise)
-  const filters: any = {
-    open: []
-  }
+  let cachedFilters = filtersCache.get(input)
 
-  for (const result of results) {
-    const program: Program = result.meta.program
-    const allhours = [
-      [program.Open_Time_Sunday__c, program.Close_Time_Sunday__c],
-      [program.Open_Time_Monday__c, program.Close_Time_Monday__c],
-      [program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c],
-      [program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c],
-      [program.Open_Time_Thursday__c, program.Close_Time_Thursday__c],
-      [program.Open_Time_Friday__c, program.Close_Time_Friday__c],
-      [program.Open_Time_Saturday__c, program.Close_Time_Saturday__c]
-    ]
-    const today = new Date().getDay()
-    const hours = allhours[today] as [string, string]
-    const [openTime, closeTime] = hours
-    const open = timeStringToDate(openTime)
-    const close = timeStringToDate(closeTime)
-    if (open && close) {
-      if (close < open) {
-        close.setDate(close.getDate() + 1)
-      }
-      const now = new Date()
-      if (now >= open && now <= close) {
-        filters.open.push(result)
+  if (!cachedFilters) {
+    let cachedResults = resultsCache.get(input)
+    let numRetries = 1
+    while (!cachedResults) {
+      if (numRetries < 3) {
+        debug('[getFilters] sleep for 2s, numRetries=%s', numRetries)
+        await wait(2000)
+        cachedResults = resultsCache.get(input)
+        if (cachedResults) {
+          debug('[getFilters] got cachedResults after sleep, numRetries=%s', numRetries)
+        } else {
+          debug('[getFilters] still no cachedResults after sleep, numRetries=%s', numRetries)
+        }
+        numRetries++
+      } else {
+        debug('[getFilters] no luck, numRetries=%s', numRetries)
+        return null
       }
     }
+
+    debug('[getFilters] cachedResults.length=%s', cachedResults.length)
+
+    const resultsPromise = cachedResults.map((r) => buildResult(r.id, true))
+    const results = await Promise.all(resultsPromise)
+    const filters: any = {
+      openNow: []
+    }
+
+    for (const result of results) {
+      const program: Program = result?.meta?.program
+      if (!program) {
+        continue
+      }
+      const allhours = [
+        [program.Open_Time_Sunday__c, program.Close_Time_Sunday__c],
+        [program.Open_Time_Monday__c, program.Close_Time_Monday__c],
+        [program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c],
+        [program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c],
+        [program.Open_Time_Thursday__c, program.Close_Time_Thursday__c],
+        [program.Open_Time_Friday__c, program.Close_Time_Friday__c],
+        [program.Open_Time_Saturday__c, program.Close_Time_Saturday__c]
+      ]
+      const today = new Date().getDay()
+      const hours = allhours[today] as [string, string]
+      const [openTime, closeTime] = hours
+      const open = timeStringToDate(openTime)
+      const close = timeStringToDate(closeTime)
+      if (open && close) {
+        if (close < open) {
+          close.setDate(close.getDate() + 1)
+        }
+        const now = new Date()
+        if (now >= open && now <= close) {
+          filters.openNow.push(result.id)
+        }
+      }
+    }
+
+    filtersCache.set(input, filters)
+
+    cachedFilters = filters
   }
+
+  const rv = {
+    openNow: cachedFilters.openNow.length > 0
+  }
+
+  return rv
 }

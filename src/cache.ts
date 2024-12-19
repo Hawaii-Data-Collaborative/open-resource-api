@@ -1,4 +1,7 @@
 import { Base } from './base'
+import { cloneSorted } from './util'
+
+const debug = require('debug')('app:cache')
 
 class Cache extends Base {
   name: string
@@ -11,7 +14,7 @@ class Cache extends Base {
   }
 
   set(k, v) {
-    const key = JSON.stringify(k)
+    const key = JSON.stringify(cloneSorted(k))
     if (this._data[key]) {
       clearTimeout(this._data[key].timeoutId)
       delete this._data[key]
@@ -26,10 +29,13 @@ class Cache extends Base {
       added: new Date(),
       timeoutId
     }
+
+    debug('[set][%s] key=%s', this.name, key)
   }
 
   get(k) {
-    const key = JSON.stringify(k)
+    const key = JSON.stringify(cloneSorted(k))
+    debug('[get][%s] key=%s', this.name, key)
     return this._data[key]?.value || null
   }
 }

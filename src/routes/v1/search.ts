@@ -5,23 +5,29 @@ const router = new Router({
   prefix: '/search'
 })
 
+function parseQuery(query) {
+  const searchText = query.q?.trim()
+  const taxonomies = query.taxonomies?.trim()
+  const radius = query.radius != null ? Number(query.radius) : undefined
+  const lat = query.lat != null ? Number(query.lat) : undefined
+  const lng = query.lon != null ? Number(query.lon) : undefined
+  const zipCode = query.zipCode != null ? Number(query.zipCode) : undefined
+  const filters = query.filters != null ? JSON.parse(decodeURIComponent(query.filters)) : undefined
+  return { searchText, taxonomies, radius, lat, lng, zipCode, filters }
+}
+
 router.get('/', async (ctx) => {
   const analyticsUserId = ctx.get('X-UID')
-  const searchText = (ctx.query.q as string)?.trim()
-  const taxonomies = (ctx.query.taxonomies as string)?.trim()
-  const radius = ctx.query.radius != null ? Number(ctx.query.radius) : undefined
-  const lat = ctx.query.lat != null ? Number(ctx.query.lat) : undefined
-  const lng = ctx.query.lon != null ? Number(ctx.query.lon) : undefined
-  const zipCode = ctx.query.zipCode != null ? Number(ctx.query.zipCode) : undefined
-  const results = await searchService.search({ searchText, taxonomies, radius, lat, lng, zipCode, analyticsUserId })
-  ctx.body = results
+  const input = parseQuery(ctx.query)
+  const rv = await searchService.search(input, { analyticsUserId })
+  ctx.body = rv
 })
 
 router.get('/filters', async (ctx) => {
-  const searchText = (ctx.query.query as string)?.trim()
-  const taxonomies = (ctx.query.taxonomies as string)?.trim()
-  const filters = await searchService.getFilters(searchText, taxonomies)
-  ctx.body = filters
+  const analyticsUserId = ctx.get('X-UID')
+  const input = parseQuery(ctx.query)
+  const rv = await searchService.getFilters(input, { analyticsUserId })
+  ctx.body = rv
 })
 
 export default router
