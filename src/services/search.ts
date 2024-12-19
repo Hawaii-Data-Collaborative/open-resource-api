@@ -47,10 +47,10 @@ interface SearchOptions {
   analyticsUserId?: string
 }
 
-function filterResults(results: any[], filters: any) {
+function filterResults(results: any[], facets: any, filters: any) {
   let filteredResults = results
   if (filters.openNow) {
-    filteredResults = results.filter((r) => filters.openNow.includes(r.id))
+    filteredResults = results.filter((r) => facets.openNow.includes(r.id))
   }
   return filteredResults
 }
@@ -65,7 +65,7 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
   const cachedFilters = filtersCache.get(input)
 
   if (cachedResults && cachedFilters && !_.isEmpty(filters)) {
-    return filterResults(cachedResults, filters)
+    return filterResults(cachedResults, cachedFilters, filters)
   }
 
   if (!taxonomiesByCode) {
@@ -241,7 +241,22 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
 
   const results = await buildResults(sitePrograms as SiteProgram[], filteredPrograms)
   resultsCache.set(input, results)
-  return _.isEmpty(filters) ? results : filterResults(results, filters)
+
+  if (_.isEmpty(filters)) {
+    debug('[search] no filters, returning all results')
+    return results
+  } else {
+    debug('[search] yes filters, get facets')
+    await getFilters(input, options)
+    const cachedFilters = filtersCache.get(input)
+    if (cachedFilters) {
+      debug('[search] yes facets, filter results')
+      return filterResults(results, cachedFilters, filters)
+    } else {
+      debug('[search] no facets, returning all results')
+      return results
+    }
+  }
 }
 
 export async function buildResults(sitePrograms: SiteProgram[], programs?: Program[]) {
