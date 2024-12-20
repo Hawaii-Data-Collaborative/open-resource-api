@@ -66,6 +66,14 @@ function filterResults(results: any[], facets: any, filters: any) {
     })
   }
 
+  const ageRestrictions = Object.keys(filters)
+    .filter((k) => k.startsWith('Age.'))
+    .map((k) => k.split('.')[1])
+
+  if (ageRestrictions.length) {
+    filteredResults = filteredResults.filter((r) => ageRestrictions.includes(r.ageRestrictions))
+  }
+
   return filteredResults
 }
 
@@ -380,6 +388,7 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
         service_short_description: p.Service_Description__c, // - service_short_description
         phone: p.Program_Phone_Text__c, //
         website: p.Website__c, //
+        ageRestrictions: p.Age_Range_restrictions__c === 'None' ? null : p.Age_Range_restrictions__c,
         categories: await getCategories(p),
         languages: getLanguages(p),
         fees: getFees(p),
@@ -439,6 +448,7 @@ export async function buildResult(siteProgramId: string, meta = false) {
     email: program.Program_Email__c,
     organizationName: agency.Name,
     organizationDescription: agency.Overview__c,
+    ageRestrictions: program.Age_Range_restrictions__c === 'None' ? null : program.Age_Range_restrictions__c,
     categories: await getCategories(program),
     languages: getLanguages(program),
     fees: getFees(program),
@@ -564,6 +574,11 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
       facets.groups.push(languageGroup)
     }
 
+    const ageGroup = { name: 'Age', items: [] as any[] }
+    if (results.some((r) => !!r.ageRestrictions)) {
+      facets.groups.push(ageGroup)
+    }
+
     const now = DateTime.now().setZone('Pacific/Honolulu')
     const nowWeekday = now.weekday
     const nowTime = now.toFormat('HHmm')
@@ -610,6 +625,17 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
           } else {
             languageGroup.items.push({ name: lang, ids: [result.id] })
           }
+        }
+      }
+
+      // age restrictions facet
+
+      if (result.ageRestrictions) {
+        let item = ageGroup.items.find((i) => i.name === result.ageRestrictions)
+        if (item) {
+          item.ids.push(result.id)
+        } else {
+          ageGroup.items.push({ name: result.ageRestrictions, ids: [result.id] })
         }
       }
     }
