@@ -1,10 +1,13 @@
-import { timeStringToDate } from '../src/util'
+import { parseTimeString } from '../src/util'
 
-test('timeStringToDate', () => {
-  expect((timeStringToDate('8:00am') as Date).toJSON().substring(11, 16)).toBe('18:00')
-  expect((timeStringToDate('8:00 am') as Date).toJSON().substring(11, 16)).toBe('18:00')
-  expect((timeStringToDate('12:00am') as Date).toJSON().substring(11, 16)).toBe('10:00')
-  expect((timeStringToDate('12:00 pm') as Date).toJSON().substring(11, 16)).toBe('22:00')
-  expect((timeStringToDate('1:00pm') as Date).toJSON().substring(11, 16)).toBe('23:00')
-  expect((timeStringToDate('11:00 PM') as Date).toJSON().substring(11, 16)).toBe('09:00')
+test('parseTimeString', () => {
+  expect(parseTimeString('8:00am')).toBe('0800')
+  expect(parseTimeString('8:00 am')).toBe('0800')
+  expect(parseTimeString('12:00am')).toBe('0000')
+  expect(parseTimeString('12:00 pm')).toBe('1200')
+  expect(parseTimeString('11:59 am')).toBe('1159')
+  expect(parseTimeString('12:01 pm')).toBe('1201')
+  expect(parseTimeString('1:00pm')).toBe('1300')
+  expect(parseTimeString('11:00 PM')).toBe('2300')
+  expect(parseTimeString('11:59 PM')).toBe('2359')
 })
