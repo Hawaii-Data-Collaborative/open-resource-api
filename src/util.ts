@@ -33,7 +33,7 @@ export function decodeToken(token: string) {
   return Buffer.from(token, 'base64').toString('utf-8')
 }
 
-export function timeStringToDate(time: string) {
+export function parseTimeString(time: string) {
   const re = /(\d+):(\d+)\s?(am|pm)/i
   const match = re.exec(time)
   if (!match) {
@@ -47,12 +47,8 @@ export function timeStringToDate(time: string) {
   } else if (z === 'pm' && h < 12) {
     h += 12
   }
-  const date = new Date()
-  const Y = date.getFullYear()
-  const M = date.getMonth()
-  const D = date.getDate()
-  const result = new Date(Y, M, D, h, m)
-  return result
+
+  return String(h).padStart(2, '0') + String(m).padStart(2, '0')
 }
 
 export function cloneSorted(obj: any) {

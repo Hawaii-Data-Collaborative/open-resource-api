@@ -6,11 +6,12 @@ import {
   site_program as SiteProgram
 } from '@prisma/client'
 import _ from 'lodash'
+import { DateTime } from 'luxon'
 import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
 import { getRelatedSearches, getTrendingSearches } from './trends'
 import { filtersCache, resultsCache } from '../cache'
-import { buildHours, timeStringToDate, wait } from '../util'
+import { buildHours, parseTimeString, wait } from '../util'
 
 const debug = require('debug')('app:services:search')
 
@@ -681,6 +682,10 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
       facets.groups.push(languageGroup)
     }
 
+    const now = DateTime.now().setZone('Pacific/Honolulu')
+    const nowWeekday = now.weekday
+    const nowTime = now.toFormat('HHmm')
+
     for (const result of results) {
       const program: Program = result?.meta?.program
       if (!program) {
@@ -698,17 +703,12 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
         [program.Open_Time_Friday__c, program.Close_Time_Friday__c],
         [program.Open_Time_Saturday__c, program.Close_Time_Saturday__c]
       ]
-      const today = new Date().getDay()
-      const hours = allhours[today] as [string, string]
-      const [openTime, closeTime] = hours
-      const open = timeStringToDate(openTime)
-      const close = timeStringToDate(closeTime)
-      if (open && close) {
-        if (close < open) {
-          close.setDate(close.getDate() + 1)
-        }
-        const now = new Date()
-        if (now >= open && now <= close) {
+
+      const hours = allhours[nowWeekday - 1] as [string, string]
+      const openTime = parseTimeString(hours[0])
+      const closeTime = parseTimeString(hours[1])
+      if (openTime && closeTime) {
+        if (nowTime >= openTime && nowTime <= closeTime) {
           facets.openNow.push(result.id)
         }
       }
