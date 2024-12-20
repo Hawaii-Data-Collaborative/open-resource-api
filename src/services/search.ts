@@ -694,22 +694,26 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
 
       // openNow facet
 
-      const allhours = [
-        [program.Open_Time_Sunday__c, program.Close_Time_Sunday__c],
-        [program.Open_Time_Monday__c, program.Close_Time_Monday__c],
-        [program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c],
-        [program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c],
-        [program.Open_Time_Thursday__c, program.Close_Time_Thursday__c],
-        [program.Open_Time_Friday__c, program.Close_Time_Friday__c],
-        [program.Open_Time_Saturday__c, program.Close_Time_Saturday__c]
-      ]
+      if (program.Open_247__c === '1') {
+        facets.openNow.push(result.id)
+      } else {
+        const allhours = [
+          [program.Open_Time_Sunday__c, program.Close_Time_Sunday__c],
+          [program.Open_Time_Monday__c, program.Close_Time_Monday__c],
+          [program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c],
+          [program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c],
+          [program.Open_Time_Thursday__c, program.Close_Time_Thursday__c],
+          [program.Open_Time_Friday__c, program.Close_Time_Friday__c],
+          [program.Open_Time_Saturday__c, program.Close_Time_Saturday__c]
+        ]
 
-      const hours = allhours[nowWeekday - 1] as [string, string]
-      const openTime = parseTimeString(hours[0])
-      const closeTime = parseTimeString(hours[1])
-      if (openTime && closeTime) {
-        if (nowTime >= openTime && nowTime <= closeTime) {
-          facets.openNow.push(result.id)
+        const hours = allhours[nowWeekday - 1] as [string, string]
+        const openTime = parseTimeString(hours[0])
+        const closeTime = parseTimeString(hours[1])
+        if (openTime && closeTime) {
+          if (nowTime >= openTime && nowTime <= closeTime) {
+            facets.openNow.push(result.id)
+          }
         }
       }
 
