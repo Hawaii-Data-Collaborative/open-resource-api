@@ -1,3 +1,4 @@
+import { program as Program } from '@prisma/client'
 import prisma from '../lib/prisma'
 import { buildHours } from '../util'
 
@@ -38,6 +39,54 @@ export async function getProgramDetails(spId: string) {
     rejectOnNotFound: true
   })
 
+  const result: any = {
+    id: siteProgram.id,
+    title: `${program.Name} at ${site.Name}`,
+    description: program.Service_Description__c,
+    phone: program.Program_Phone_Text__c,
+    website: program.Website__c,
+    emergencyInfo: '',
+    eligibility: program.Eligibility_Long__c,
+    email: program.Program_Email__c,
+    organizationName: agency.Name,
+    organizationDescription: agency.Overview__c,
+    categories: await getCategories(program),
+    languages: getLanguages(program),
+    fees: getFees(program),
+    schedule: getSchedule(program),
+    applicationProcess: getApplicationProcess(program),
+    serviceArea: getServiceArea(program)
+  }
+
+  if (!site.Billing_Address_is_Confidential__c || site.Billing_Address_is_Confidential__c == '0') {
+    let street = site.Street_Number__c
+    if (street && site.City__c) {
+      if (site.Suite__c) {
+        street += ` ${site.Suite__c}`
+      }
+      let physicalAddress = street
+      if (site.City__c) {
+        physicalAddress += `, ${site.City__c}`
+        if (site.State__c) {
+          physicalAddress += ` ${site.State__c}`
+          if (site.Zip_Code__c) {
+            physicalAddress += ` ${site.Zip_Code__c}`
+          }
+        }
+      }
+      result.locationName = physicalAddress
+    }
+
+    if (site.Street_Number__c && site.Location__Latitude__s && site.Location__Longitude__s) {
+      result.locationLat = site.Location__Latitude__s
+      result.locationLon = site.Location__Longitude__s
+    }
+  }
+
+  return result
+}
+
+export async function getCategories(program: Program) {
   const categories: any[] = []
   const psList = await prisma.program_service.findMany({
     select: { Taxonomy__c: true },
@@ -55,6 +104,10 @@ export async function getProgramDetails(spId: string) {
     categories.push({ value: tax.Code__c, label: tax.Name })
   }
 
+  return categories
+}
+
+export function getLanguages(program: Program) {
   let languages: string
   if (program.Languages_Consistently_Available__c !== null) {
     switch (program.Languages_Consistently_Available__c) {
@@ -68,6 +121,7 @@ export async function getProgramDetails(spId: string) {
             .replace('English and ', '')
             .replace('English, ', '')
             .replace('English; ', '')
+            .replace('and ', '')
         break
       default:
         languages = program.Languages_Consistently_Available__c
@@ -78,6 +132,10 @@ export async function getProgramDetails(spId: string) {
     languages = ''
   }
 
+  return languages
+}
+
+export function getApplicationProcess(program: Program) {
   let applicationProcess: string
   if (program.Intake_Procedure_Multiselect__c !== null) {
     const items = new Set(program.Intake_Procedure_Multiselect__c.split(';'))
@@ -90,6 +148,10 @@ export async function getProgramDetails(spId: string) {
     applicationProcess = ''
   }
 
+  return applicationProcess
+}
+
+export function getFees(program: Program) {
   let fees: string
   if (program.Fees__c) {
     let allFees = program.Fees__c.split(';')
@@ -104,6 +166,10 @@ export async function getProgramDetails(spId: string) {
     fees = ''
   }
 
+  return fees
+}
+
+export function getSchedule(program: Program) {
   let schedule: string
   if (program.Open_247__c == '1') {
     schedule = 'Open 24/7'
@@ -133,54 +199,13 @@ export async function getProgramDetails(spId: string) {
     schedule = ''
   }
 
-  const result: any = {
-    id: siteProgram.id,
-    title: `${program.Name} at ${site.Name}`,
-    description: program.Service_Description__c,
-    categories,
-    phone: program.Program_Phone_Text__c,
-    website: program.Website__c,
-    languages,
-    fees,
-    emergencyInfo: '',
-    eligibility: program.Eligibility_Long__c,
-    email: program.Program_Email__c,
-    schedule,
-    applicationProcess,
-    organizationName: agency.Name,
-    organizationDescription: agency.Overview__c,
-    serviceArea:
-      program.ServiceArea__c == null
-        ? null
-        : program.ServiceArea__c.toLowerCase().includes('all islands')
-        ? 'All islands'
-        : program.ServiceArea__c.replaceAll(';', ', ')
-  }
+  return schedule
+}
 
-  if (!site.Billing_Address_is_Confidential__c || site.Billing_Address_is_Confidential__c == '0') {
-    let street = site.Street_Number__c
-    if (street && site.City__c) {
-      if (site.Suite__c) {
-        street += ` ${site.Suite__c}`
-      }
-      let physicalAddress = street
-      if (site.City__c) {
-        physicalAddress += `, ${site.City__c}`
-        if (site.State__c) {
-          physicalAddress += ` ${site.State__c}`
-          if (site.Zip_Code__c) {
-            physicalAddress += ` ${site.Zip_Code__c}`
-          }
-        }
-      }
-      result.locationName = physicalAddress
-    }
-
-    if (site.Street_Number__c && site.Location__Latitude__s && site.Location__Longitude__s) {
-      result.locationLat = site.Location__Latitude__s
-      result.locationLon = site.Location__Longitude__s
-    }
-  }
-
-  return result
+export function getServiceArea(program: Program) {
+  return program.ServiceArea__c == null
+    ? null
+    : program.ServiceArea__c.toLowerCase().includes('all islands')
+    ? 'All islands'
+    : program.ServiceArea__c.replaceAll(';', ', ')
 }

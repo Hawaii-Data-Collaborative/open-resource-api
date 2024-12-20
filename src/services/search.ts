@@ -11,7 +11,8 @@ import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
 import { getRelatedSearches, getTrendingSearches } from './trends'
 import { filtersCache, resultsCache } from '../cache'
-import { buildHours, parseTimeString, wait } from '../util'
+import { parseTimeString, wait } from '../util'
+import { getApplicationProcess, getCategories, getFees, getLanguages, getSchedule, getServiceArea } from './program'
 
 const debug = require('debug')('app:services:search')
 
@@ -481,125 +482,6 @@ export async function buildResult(siteProgramId: string, meta = false) {
   }
 
   return result
-}
-
-async function getCategories(program: Program) {
-  const categories: any[] = []
-  const psList = await prisma.program_service.findMany({
-    select: { Taxonomy__c: true },
-    where: { Program__c: program.id }
-  })
-  const taxIds = psList.map((ps) => ps.Taxonomy__c)
-  const taxList = await prisma.taxonomy.findMany({
-    select: { Name: true, Code__c: true },
-    where: {
-      id: { in: taxIds },
-      Status__c: { not: 'Inactive' }
-    }
-  })
-  for (const tax of taxList) {
-    categories.push({ value: tax.Code__c, label: tax.Name })
-  }
-
-  return categories
-}
-
-function getLanguages(program: Program) {
-  let languages: string
-  if (program.Languages_Consistently_Available__c !== null) {
-    switch (program.Languages_Consistently_Available__c) {
-      case 'English Only':
-        languages = 'English'
-        break
-      case 'English and Other (Specify)':
-        languages =
-          'English, ' +
-          (program.Languages_Text__c as string)
-            .replace('English and ', '')
-            .replace('English, ', '')
-            .replace('English; ', '')
-        break
-      default:
-        languages = program.Languages_Consistently_Available__c
-    }
-  } else if (program.Languages_Text__c !== null) {
-    languages = program.Languages_Text__c
-  } else {
-    languages = ''
-  }
-
-  return languages
-}
-
-function getApplicationProcess(program: Program) {
-  let applicationProcess: string
-  if (program.Intake_Procedure_Multiselect__c !== null) {
-    const items = new Set(program.Intake_Procedure_Multiselect__c.split(';'))
-    if (items.has('Other (specify)')) {
-      items.delete('Other (specify)')
-      items.add(program.Intake_Procedures_Other__c as string)
-    }
-    applicationProcess = [...items].join(', ')
-  } else {
-    applicationProcess = ''
-  }
-
-  return applicationProcess
-}
-
-function getFees(program: Program) {
-  let fees: string
-  if (program.Fees__c) {
-    let allFees = program.Fees__c.split(';')
-    if (allFees.includes('Other')) {
-      allFees = allFees.filter((f) => f !== 'Other')
-      if (program.Fees_Other__c) {
-        allFees.push(program.Fees_Other__c)
-      }
-    }
-    fees = allFees.map((f) => f.trim()).join('; ')
-  } else {
-    fees = ''
-  }
-
-  return fees
-}
-
-function getSchedule(program: Program) {
-  let schedule: string
-  if (program.Open_247__c == '1') {
-    schedule = 'Open 24/7'
-  } else if (
-    program.Open_Time_Monday__c ||
-    program.Open_Time_Tuesday__c ||
-    program.Open_Time_Wednesday__c ||
-    program.Open_Time_Thursday__c ||
-    program.Open_Time_Friday__c ||
-    program.Open_Time_Saturday__c ||
-    program.Open_Time_Sunday__c
-  ) {
-    schedule = [
-      buildHours('Mo', program.Open_Time_Monday__c, program.Close_Time_Monday__c),
-      buildHours('Tu', program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c),
-      buildHours('We', program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c),
-      buildHours('Th', program.Open_Time_Thursday__c, program.Close_Time_Thursday__c),
-      buildHours('Fr', program.Open_Time_Friday__c, program.Close_Time_Friday__c),
-      buildHours('Sa', program.Open_Time_Saturday__c, program.Close_Time_Saturday__c),
-      buildHours('Su', program.Open_Time_Sunday__c, program.Close_Time_Sunday__c)
-    ].join('\n')
-  } else {
-    schedule = ''
-  }
-
-  return schedule
-}
-
-function getServiceArea(program: Program) {
-  return program.ServiceArea__c == null
-    ? null
-    : program.ServiceArea__c.toLowerCase().includes('all islands')
-    ? 'All islands'
-    : program.ServiceArea__c.replaceAll(';', ', ')
 }
 
 export async function instantSearch(searchText: string, userId: string) {
