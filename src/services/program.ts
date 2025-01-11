@@ -4,25 +4,45 @@ import { buildHours } from '../util'
 
 const debug = require('debug')('app:services:program')
 
-export async function getCategories(program: Program) {
-  const categories: any[] = []
+let categoryMap = {}
+
+async function init() {
+  debug('[init]')
   const psList = await prisma.program_service.findMany({
-    select: { Taxonomy__c: true },
-    where: { Program__c: program.id }
+    select: { Program__c: true, Taxonomy__c: true }
   })
-  const taxIds = psList.map((ps) => ps.Taxonomy__c)
+
   const taxList = await prisma.taxonomy.findMany({
-    select: { Name: true, Code__c: true },
-    where: {
-      id: { in: taxIds },
-      Status__c: { not: 'Inactive' }
-    }
+    select: { id: true, Name: true, Code__c: true },
+    where: { Status__c: { not: 'Inactive' } }
   })
-  for (const tax of taxList) {
-    categories.push({ value: tax.Code__c, label: tax.Name })
+
+  categoryMap = {}
+  for (const ps of psList) {
+    if (!categoryMap[ps.Program__c]) {
+      categoryMap[ps.Program__c] = []
+    }
+    const tax = taxList.find((t) => t.id === ps.Taxonomy__c)
+    if (tax) {
+      categoryMap[ps.Program__c].push({ value: tax.Code__c, label: tax.Name })
+    }
   }
 
-  return categories
+  debug('[init] added %s entries to categoryMap', Object.keys(categoryMap).length)
+  const tenMinutes = 1000 * 60 * 10
+  setTimeout(() => {
+    init()
+  }, tenMinutes)
+}
+
+export function getCategories(program: Program) {
+  const rv = categoryMap[program.id]
+  // if (rv) {
+  //   debug('[getCategories] found entry with %s categories for program %s', rv.length, program.id)
+  // } else {
+  //   debug('[getCategories] nothing found for program %s', program.id)
+  // }
+  return rv ?? []
 }
 
 export function getLanguages(program: Program) {
@@ -127,3 +147,5 @@ export function getServiceArea(program: Program) {
     ? 'All islands'
     : program.ServiceArea__c.replaceAll(';', ', ')
 }
+
+init()
