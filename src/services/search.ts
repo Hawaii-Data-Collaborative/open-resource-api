@@ -335,7 +335,7 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
   for (const p of programs) {
     const agency: Agency = agencyMap[p.Account__c as string]
     if (!agency || !['Active', 'Active - Online Only'].includes(agency.Status__c as string)) {
-      debug('[search] skipping program %s, agency %s status=%s', p.Name, agency?.Name, agency?.Status__c)
+      debug('[buildResults] skipping program %s, agency %s status=%s', p.Name, agency?.Name, agency?.Status__c)
       continue
     }
     const spList: SiteProgram[] = siteProgramMap[p.id]
@@ -349,7 +349,7 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
       }
 
       if (processedIds.has(sp.id)) {
-        debug('[search] sp.id %s in processedIds, skip', sp.id)
+        debug('[buildResults] sp.id %s in processedIds, skip', sp.id)
         continue
       }
       processedIds.add(sp.id)
@@ -389,7 +389,7 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
         phone: p.Program_Phone_Text__c, //
         website: p.Website__c, //
         ageRestrictions: p.Age_Range_restrictions__c === 'None' ? null : p.Age_Range_restrictions__c,
-        categories: await getCategories(p),
+        categories: getCategories(p),
         languages: getLanguages(p),
         fees: getFees(p),
         schedule: getSchedule(p),
@@ -400,6 +400,117 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
   }
 
   return results
+}
+
+async function getRecords(siteProgramIds) {
+  const sitePrograms = await prisma.site_program.findMany({
+    select: {
+      id: true,
+      Site__c: true,
+      Program__c: true
+    },
+    where: { id: { in: siteProgramIds } }
+  })
+
+  const siteIds = sitePrograms.map((sp) => sp.Site__c as string)
+  let sites = await prisma.site.findMany({
+    where: {
+      id: { in: siteIds }
+    }
+  })
+  sites = sites.filter((s) => ['Active', 'Active - Online Only'].includes(s.Status__c as string))
+
+  const programIds = sitePrograms.map((sp) => sp.Program__c as string)
+  let programs = await prisma.program.findMany({
+    where: {
+      id: { in: programIds }
+    }
+  })
+  programs = programs.filter((p) => p.Status__c !== 'Inactive')
+
+  const agencyIds = programs.map((p) => p.Account__c as string)
+  let agencies = await prisma.agency.findMany({
+    where: {
+      id: { in: agencyIds }
+    }
+  })
+  agencies = agencies.filter((a) => ['Active', 'Active - Online Only'].includes(a.Status__c as string))
+
+  const records = {}
+  for (const siteProgram of sitePrograms) {
+    const site = sites.find((s) => s.id === siteProgram.Site__c)
+    const program = programs.find((p) => p.id === siteProgram.Program__c)
+    const agency = program ? agencies.find((a) => a.id === program.Account__c) : null
+    records[siteProgram.id] = { siteProgram, site, program, agency }
+  }
+  return records
+}
+
+function _buildResult(siteProgram, site, program, agency) {
+  const result: any = {
+    id: siteProgram.id,
+    title: `${program.Name} at ${site.Name}`,
+    description: program.Service_Description__c,
+    phone: program.Program_Phone_Text__c,
+    website: program.Website__c,
+    emergencyInfo: '',
+    eligibility: program.Eligibility_Long__c,
+    email: program.Program_Email__c,
+    organizationName: agency.Name,
+    organizationDescription: agency.Overview__c,
+    ageRestrictions: program.Age_Range_restrictions__c === 'None' ? null : program.Age_Range_restrictions__c,
+    categories: getCategories(program),
+    languages: getLanguages(program),
+    fees: getFees(program),
+    schedule: getSchedule(program),
+    applicationProcess: getApplicationProcess(program),
+    serviceArea: getServiceArea(program)
+  }
+
+  if (!site.Billing_Address_is_Confidential__c || site.Billing_Address_is_Confidential__c == '0') {
+    let street = site.Street_Number__c
+    if (street && site.City__c) {
+      if (site.Suite__c) {
+        street += ` ${site.Suite__c}`
+      }
+      let physicalAddress = street
+      if (site.City__c) {
+        physicalAddress += `, ${site.City__c}`
+        if (site.State__c) {
+          physicalAddress += ` ${site.State__c}`
+          if (site.Zip_Code__c) {
+            physicalAddress += ` ${site.Zip_Code__c}`
+          }
+        }
+      }
+      result.locationName = physicalAddress
+    }
+
+    if (site.Street_Number__c && site.Location__Latitude__s && site.Location__Longitude__s) {
+      result.locationLat = site.Location__Latitude__s
+      result.locationLon = site.Location__Longitude__s
+    }
+  }
+
+  return result
+}
+
+export async function buildResultSync(siteProgramId: string, meta = false, records: any) {
+  const entry = records[siteProgramId]
+  const { siteProgram, site, program, agency } = entry
+
+  const result = _buildResult(siteProgram, site, program, agency)
+
+  if (meta) {
+    result.meta = {
+      site,
+      program,
+      siteProgram,
+      agency
+    }
+  }
+
+  return result
 }
 
 export async function buildResult(siteProgramId: string, meta = false) {
@@ -437,57 +548,14 @@ export async function buildResult(siteProgramId: string, meta = false) {
     rejectOnNotFound: true
   })
 
-  const result: any = {
-    id: siteProgram.id,
-    title: `${program.Name} at ${site.Name}`,
-    description: program.Service_Description__c,
-    phone: program.Program_Phone_Text__c,
-    website: program.Website__c,
-    emergencyInfo: '',
-    eligibility: program.Eligibility_Long__c,
-    email: program.Program_Email__c,
-    organizationName: agency.Name,
-    organizationDescription: agency.Overview__c,
-    ageRestrictions: program.Age_Range_restrictions__c === 'None' ? null : program.Age_Range_restrictions__c,
-    categories: await getCategories(program),
-    languages: getLanguages(program),
-    fees: getFees(program),
-    schedule: getSchedule(program),
-    applicationProcess: getApplicationProcess(program),
-    serviceArea: getServiceArea(program)
-  }
+  const result = _buildResult(siteProgram, site, program, agency)
 
-  if (!site.Billing_Address_is_Confidential__c || site.Billing_Address_is_Confidential__c == '0') {
-    let street = site.Street_Number__c
-    if (street && site.City__c) {
-      if (site.Suite__c) {
-        street += ` ${site.Suite__c}`
-      }
-      let physicalAddress = street
-      if (site.City__c) {
-        physicalAddress += `, ${site.City__c}`
-        if (site.State__c) {
-          physicalAddress += ` ${site.State__c}`
-          if (site.Zip_Code__c) {
-            physicalAddress += ` ${site.Zip_Code__c}`
-          }
-        }
-      }
-      result.locationName = physicalAddress
-    }
-
-    if (site.Street_Number__c && site.Location__Latitude__s && site.Location__Longitude__s) {
-      result.locationLat = site.Location__Latitude__s
-      result.locationLon = site.Location__Longitude__s
-    }
-
-    if (meta) {
-      result.meta = {
-        site,
-        program,
-        siteProgram,
-        agency
-      }
+  if (meta) {
+    result.meta = {
+      site,
+      program,
+      siteProgram,
+      agency
     }
   }
 
@@ -562,7 +630,9 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
 
     debug('[getFacets] cachedResults.length=%s', cachedResults.length)
 
-    const resultsPromise = cachedResults.map((r) => buildResult(r.id, true))
+    const siteProgramIds = cachedResults.map((r) => r.id)
+    const records = await getRecords(siteProgramIds)
+    const resultsPromise = cachedResults.map((r) => buildResultSync(r.id, true, records))
     const results = await Promise.all(resultsPromise)
     const facets: any = {
       openNow: [],
