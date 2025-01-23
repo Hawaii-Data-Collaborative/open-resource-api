@@ -89,19 +89,39 @@ export function getApplicationProcess(program: Program) {
   return applicationProcess
 }
 
-export function getFees(program: Program) {
+export function getFees(program: Program, normalize = false) {
   let fees: string
-  if (program.Fees__c) {
-    let allFees = program.Fees__c.split(';')
-    if (allFees.includes('Other')) {
-      allFees = allFees.filter((f) => f !== 'Other')
-      if (program.Fees_Other__c) {
-        allFees.push(program.Fees_Other__c)
-      }
+  if (normalize) {
+    if (program.Fees__c === null || program.Fees_Text__c === 'No fees') {
+      fees = 'Free'
+    } else if (program.Fees__c === 'Sliding Scale') {
+      fees = 'Sliding scale'
+    } else if (program.Fees_Other__c?.includes('per year')) {
+      fees = 'Annual fee'
+    } else if (program.Fees_Other__c?.includes('per month')) {
+      fees = 'Monthly fee'
+    } else if (program.Fees_Other__c?.includes('per week')) {
+      fees = 'Weekly fee'
+    } else if (program.Fees_Other__c?.includes('per day') || program.Fees_Other__c?.includes('per night')) {
+      fees = 'Daily fee'
+    } else if (program.Fees__c.includes('Flat Fee')) {
+      fees = 'Flat fee'
+    } else {
+      fees = 'Other'
     }
-    fees = allFees.map((f) => f.trim()).join('; ')
   } else {
-    fees = ''
+    if (program.Fees__c) {
+      let allFees = program.Fees__c.split(';')
+      if (allFees.includes('Other')) {
+        allFees = allFees.filter((f) => f !== 'Other')
+        if (program.Fees_Other__c) {
+          allFees.push(program.Fees_Other__c)
+        }
+      }
+      fees = allFees.map((f) => f.trim()).join('; ')
+    } else {
+      fees = ''
+    }
   }
 
   return fees

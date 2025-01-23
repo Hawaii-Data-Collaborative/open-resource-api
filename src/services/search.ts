@@ -82,6 +82,14 @@ function filterResults(results: any[], facets: any, filters: any) {
     filteredResults = filteredResults.filter((r) => ageRestrictions.includes(r.ageRestrictions))
   }
 
+  const costGroup = Object.keys(filters)
+    .filter((k) => k.startsWith('Cost.'))
+    .map((k) => k.split('.')[1])
+
+  if (costGroup.length) {
+    filteredResults = filteredResults.filter((r) => costGroup.includes(r.fees))
+  }
+
   return filteredResults
 }
 
@@ -399,7 +407,7 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
         ageRestrictions: getAgeRestrictions(p),
         categories: getCategories(p),
         languages: getLanguages(p),
-        fees: getFees(p),
+        fees: getFees(p, true),
         schedule: getSchedule(p),
         applicationProcess: getApplicationProcess(p),
         serviceArea: getServiceArea(p)
@@ -454,7 +462,7 @@ async function getRecords(siteProgramIds) {
   return records
 }
 
-function _buildResult(siteProgram, site, program, agency) {
+function _buildResult(siteProgram, site, program, agency, normalize?: boolean) {
   const result: any = {
     id: siteProgram.id,
     title: `${program.Name} at ${site.Name}`,
@@ -469,7 +477,7 @@ function _buildResult(siteProgram, site, program, agency) {
     ageRestrictions: getAgeRestrictions(program),
     categories: getCategories(program),
     languages: getLanguages(program),
-    fees: getFees(program),
+    fees: getFees(program, normalize),
     schedule: getSchedule(program),
     applicationProcess: getApplicationProcess(program),
     serviceArea: getServiceArea(program)
@@ -507,7 +515,7 @@ export async function buildResultSync(siteProgramId: string, meta = false, recor
   const entry = records[siteProgramId]
   const { siteProgram, site, program, agency } = entry
 
-  const result = _buildResult(siteProgram, site, program, agency)
+  const result = _buildResult(siteProgram, site, program, agency, true)
 
   if (meta) {
     result.meta = {
@@ -657,6 +665,11 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
       facets.groups.push(ageGroup)
     }
 
+    const costGroup = { name: 'Cost', items: [] as any[] }
+    if (results.some((r) => !!r.fees)) {
+      facets.groups.push(costGroup)
+    }
+
     const now = DateTime.now().setZone('Pacific/Honolulu')
     const nowWeekday = now.weekday
     const nowTime = now.toFormat('HHmm')
@@ -716,6 +729,17 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
           ageGroup.items.push({ name: result.ageRestrictions, ids: [result.id] })
         }
       }
+
+      // cost facet
+
+      if (result.fees) {
+        let item = costGroup.items.find((i) => i.name === result.fees)
+        if (item) {
+          item.ids.push(result.id)
+        } else {
+          costGroup.items.push({ name: result.fees, ids: [result.id] })
+        }
+      }
     }
 
     languageGroup.items.sort((a, b) => {
@@ -760,6 +784,8 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
 
       return 0
     })
+
+    costGroup.items.sort((a, b) => a.name.localeCompare(b.name))
 
     filtersCache.set(cacheKey, facets)
 
