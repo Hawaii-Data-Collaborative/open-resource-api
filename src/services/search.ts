@@ -12,7 +12,15 @@ import prisma from '../lib/prisma'
 import { getRelatedSearches, getTrendingSearches } from './trends'
 import { filtersCache, resultsCache } from '../cache'
 import { parseTimeString, wait } from '../util'
-import { getApplicationProcess, getCategories, getFees, getLanguages, getSchedule, getServiceArea } from './program'
+import {
+  getAgeRestrictions,
+  getApplicationProcess,
+  getCategories,
+  getFees,
+  getLanguages,
+  getSchedule,
+  getServiceArea
+} from './program'
 
 const debug = require('debug')('app:services:search')
 
@@ -388,7 +396,7 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
         service_short_description: p.Service_Description__c, // - service_short_description
         phone: p.Program_Phone_Text__c, //
         website: p.Website__c, //
-        ageRestrictions: p.Age_Range_restrictions__c === 'None' ? null : p.Age_Range_restrictions__c,
+        ageRestrictions: getAgeRestrictions(p),
         categories: getCategories(p),
         languages: getLanguages(p),
         fees: getFees(p),
@@ -458,7 +466,7 @@ function _buildResult(siteProgram, site, program, agency) {
     email: program.Program_Email__c,
     organizationName: agency.Name,
     organizationDescription: agency.Overview__c,
-    ageRestrictions: program.Age_Range_restrictions__c === 'None' ? null : program.Age_Range_restrictions__c,
+    ageRestrictions: getAgeRestrictions(program),
     categories: getCategories(program),
     languages: getLanguages(program),
     fees: getFees(program),
@@ -709,6 +717,49 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
         }
       }
     }
+
+    languageGroup.items.sort((a, b) => {
+      if (a.name.split(/\s+/).length > 2) {
+        return 1
+      }
+      if (b.name.split(/\s+/).length > 2) {
+        return -1
+      }
+      return a.name.localeCompare(b.name)
+    })
+
+    const minAgeRegex = /(\d+)\+/
+    const maxAgeRegex = /Under (\d+)/
+    const ageRangeRegex = /(\d+)-(\d+)/
+    ageGroup.items.sort((a, b) => {
+      let ax, bx, tmp
+
+      if ((tmp = minAgeRegex.exec(a.name))) {
+        ax = Number(tmp[1])
+      } else if ((tmp = maxAgeRegex.exec(a.name))) {
+        ax = Number(tmp[1])
+      } else if ((tmp = ageRangeRegex.exec(a.name))) {
+        ax = Number(tmp[1])
+      }
+
+      if ((tmp = minAgeRegex.exec(b.name))) {
+        bx = Number(tmp[1])
+      } else if ((tmp = maxAgeRegex.exec(b.name))) {
+        bx = Number(tmp[1])
+      } else if ((tmp = ageRangeRegex.exec(b.name))) {
+        bx = Number(tmp[1])
+      }
+
+      if (Number.isFinite(ax) && Number.isFinite(bx)) {
+        return ax - bx
+      } else if (Number.isFinite(ax)) {
+        return -1
+      } else if (Number.isFinite(bx)) {
+        return 1
+      }
+
+      return 0
+    })
 
     filtersCache.set(cacheKey, facets)
 
