@@ -92,7 +92,7 @@ export function getApplicationProcess(program: Program) {
 export function getFees(program: Program, normalize = false) {
   let fees: string
   if (normalize) {
-    if (program.Fees__c === null || program.Fees_Text__c === 'No fees') {
+    if (program.Fees__c === null || program.Fees__c === 'No fees') {
       fees = 'Free'
     } else if (program.Fees__c === 'Sliding Scale') {
       fees = 'Sliding scale'
