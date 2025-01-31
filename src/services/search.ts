@@ -6,9 +6,21 @@ import {
   site_program as SiteProgram
 } from '@prisma/client'
 import _ from 'lodash'
+import { DateTime } from 'luxon'
 import meilisearch from '../lib/meilisearch'
 import prisma from '../lib/prisma'
 import { getRelatedSearches, getTrendingSearches } from './trends'
+import { filtersCache, resultsCache } from '../cache'
+import { parseTimeString, wait } from '../util'
+import {
+  getAgeRestrictions,
+  getApplicationProcess,
+  getCategories,
+  getFees,
+  getLanguages,
+  getSchedule,
+  getServiceArea
+} from './program'
 
 const debug = require('debug')('app:services:search')
 
@@ -37,30 +49,70 @@ interface SearchInput {
   radius?: number
   lat?: number
   lng?: number
+  filters?: any
+}
+
+interface SearchOptions {
   searchTaxonomyIndex?: boolean
   analyticsUserId?: string
 }
 
-export async function search({
-  searchText = '',
-  taxonomies = '',
-  zipCode = 0,
-  radius = 0,
-  lat = 0,
-  lng = 0,
-  searchTaxonomyIndex = false,
-  analyticsUserId
-}: SearchInput = {}) {
-  debug(
-    '[search] searchText=%s taxonomies=%s zipCode=%s radius=%s lat=%s lng=%s searchTaxonomyIndex=%s',
-    searchText,
-    taxonomies,
-    zipCode,
-    radius,
-    lat,
-    lng,
-    searchTaxonomyIndex
-  )
+function filterResults(results: any[], facets: any, filters: any) {
+  let filteredResults = results
+  if (filters.openNow) {
+    filteredResults = filteredResults.filter((r) => facets.openNow.includes(r.id))
+  }
+
+  const languages = Object.keys(filters)
+    .filter((k) => k.startsWith('Language.'))
+    .map((k) => k.split('.')[1])
+
+  if (languages.length) {
+    filteredResults = filteredResults.filter((r) => {
+      const tokens = r.languages.split(',').map((s) => s.trim())
+      return languages.some((lang) => tokens.includes(lang))
+    })
+  }
+
+  const ageRestrictions = Object.keys(filters)
+    .filter((k) => k.startsWith('Age.'))
+    .map((k) => k.split('.')[1])
+
+  if (ageRestrictions.length) {
+    filteredResults = filteredResults.filter((r) => ageRestrictions.includes(r.ageRestrictions))
+  }
+
+  const costGroup = Object.keys(filters)
+    .filter((k) => k.startsWith('Cost.'))
+    .map((k) => k.split('.')[1])
+
+  if (costGroup.length) {
+    filteredResults = filteredResults.filter((r) => costGroup.includes(r.fees))
+  }
+
+  return filteredResults
+}
+
+export async function search(input: SearchInput = {}, options: SearchOptions = {}) {
+  const { searchText = '', taxonomies = '', zipCode = 0, radius = 0, lat = 0, lng = 0, filters = null } = input
+  const { analyticsUserId, searchTaxonomyIndex = false } = options
+
+  debug('[search] input=%j options=%j', input, options)
+
+  const cacheKey = { ...input, filters: undefined }
+  const cachedResults = resultsCache.get(cacheKey)
+  const cachedFilters = filtersCache.get(cacheKey)
+
+  if (cachedResults) {
+    if (_.isEmpty(filters)) {
+      debug('[search] no filters, returning all results')
+      return cachedResults
+    } else if (cachedFilters) {
+      debug('[search] yes filters, call filterResults')
+      return filterResults(cachedResults, cachedFilters, filters)
+    }
+  }
+
   if (!taxonomiesByCode) {
     debug('[search] populating taxonomiesByCode')
     const arr = await prisma.taxonomy.findMany({ where: { Status__c: { not: 'Inactive' } } })
@@ -232,7 +284,24 @@ export async function search({
     }
   }
 
-  return buildResults(sitePrograms as SiteProgram[], filteredPrograms)
+  const results = await buildResults(sitePrograms as SiteProgram[], filteredPrograms)
+  resultsCache.set(cacheKey, results)
+
+  if (_.isEmpty(filters)) {
+    debug('[search] no filters, returning all results')
+    return results
+  } else {
+    debug('[search] yes filters, get facets')
+    await getFacets(input, options)
+    const cachedFilters = filtersCache.get(cacheKey)
+    if (cachedFilters) {
+      debug('[search] yes facets, filter results')
+      return filterResults(results, cachedFilters, filters)
+    } else {
+      debug('[search] no facets, returning all results')
+      return results
+    }
+  }
 }
 
 export async function buildResults(sitePrograms: SiteProgram[], programs?: Program[]) {
@@ -282,7 +351,7 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
   for (const p of programs) {
     const agency: Agency = agencyMap[p.Account__c as string]
     if (!agency || !['Active', 'Active - Online Only'].includes(agency.Status__c as string)) {
-      debug('[search] skipping program %s, agency %s status=%s', p.Name, agency?.Name, agency?.Status__c)
+      debug('[buildResults] skipping program %s, agency %s status=%s', p.Name, agency?.Name, agency?.Status__c)
       continue
     }
     const spList: SiteProgram[] = siteProgramMap[p.id]
@@ -296,7 +365,7 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
       }
 
       if (processedIds.has(sp.id)) {
-        debug('[search] sp.id %s in processedIds, skip', sp.id)
+        debug('[buildResults] sp.id %s in processedIds, skip', sp.id)
         continue
       }
       processedIds.add(sp.id)
@@ -334,12 +403,179 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
         location_longitude: locationLon,
         service_short_description: p.Service_Description__c, // - service_short_description
         phone: p.Program_Phone_Text__c, //
-        website: p.Website__c //
+        website: p.Website__c, //
+        ageRestrictions: getAgeRestrictions(p),
+        categories: getCategories(p),
+        languages: getLanguages(p),
+        fees: getFees(p, true),
+        schedule: getSchedule(p),
+        applicationProcess: getApplicationProcess(p),
+        serviceArea: getServiceArea(p)
       })
     }
   }
 
   return results
+}
+
+async function getRecords(siteProgramIds) {
+  const sitePrograms = await prisma.site_program.findMany({
+    select: {
+      id: true,
+      Site__c: true,
+      Program__c: true
+    },
+    where: { id: { in: siteProgramIds } }
+  })
+
+  const siteIds = sitePrograms.map((sp) => sp.Site__c as string)
+  let sites = await prisma.site.findMany({
+    where: {
+      id: { in: siteIds }
+    }
+  })
+  sites = sites.filter((s) => ['Active', 'Active - Online Only'].includes(s.Status__c as string))
+
+  const programIds = sitePrograms.map((sp) => sp.Program__c as string)
+  let programs = await prisma.program.findMany({
+    where: {
+      id: { in: programIds }
+    }
+  })
+  programs = programs.filter((p) => p.Status__c !== 'Inactive')
+
+  const agencyIds = programs.map((p) => p.Account__c as string)
+  let agencies = await prisma.agency.findMany({
+    where: {
+      id: { in: agencyIds }
+    }
+  })
+  agencies = agencies.filter((a) => ['Active', 'Active - Online Only'].includes(a.Status__c as string))
+
+  const records = {}
+  for (const siteProgram of sitePrograms) {
+    const site = sites.find((s) => s.id === siteProgram.Site__c)
+    const program = programs.find((p) => p.id === siteProgram.Program__c)
+    const agency = program ? agencies.find((a) => a.id === program.Account__c) : null
+    records[siteProgram.id] = { siteProgram, site, program, agency }
+  }
+  return records
+}
+
+function _buildResult(siteProgram, site, program, agency, normalize?: boolean) {
+  const result: any = {
+    id: siteProgram.id,
+    title: `${program.Name} at ${site.Name}`,
+    description: program.Service_Description__c,
+    phone: program.Program_Phone_Text__c,
+    website: program.Website__c,
+    emergencyInfo: '',
+    eligibility: program.Eligibility_Long__c,
+    email: program.Program_Email__c,
+    organizationName: agency.Name,
+    organizationDescription: agency.Overview__c,
+    ageRestrictions: getAgeRestrictions(program),
+    categories: getCategories(program),
+    languages: getLanguages(program),
+    fees: getFees(program, normalize),
+    schedule: getSchedule(program),
+    applicationProcess: getApplicationProcess(program),
+    serviceArea: getServiceArea(program)
+  }
+
+  if (!site.Billing_Address_is_Confidential__c || site.Billing_Address_is_Confidential__c == '0') {
+    let street = site.Street_Number__c
+    if (street && site.City__c) {
+      if (site.Suite__c) {
+        street += ` ${site.Suite__c}`
+      }
+      let physicalAddress = street
+      if (site.City__c) {
+        physicalAddress += `, ${site.City__c}`
+        if (site.State__c) {
+          physicalAddress += ` ${site.State__c}`
+          if (site.Zip_Code__c) {
+            physicalAddress += ` ${site.Zip_Code__c}`
+          }
+        }
+      }
+      result.locationName = physicalAddress
+    }
+
+    if (site.Street_Number__c && site.Location__Latitude__s && site.Location__Longitude__s) {
+      result.locationLat = site.Location__Latitude__s
+      result.locationLon = site.Location__Longitude__s
+    }
+  }
+
+  return result
+}
+
+export async function buildResultSync(siteProgramId: string, meta = false, records: any) {
+  const entry = records[siteProgramId]
+  const { siteProgram, site, program, agency } = entry
+
+  const result = _buildResult(siteProgram, site, program, agency, true)
+
+  if (meta) {
+    result.meta = {
+      site,
+      program,
+      siteProgram,
+      agency
+    }
+  }
+
+  return result
+}
+
+export async function buildResult(siteProgramId: string, meta = false) {
+  const siteProgram = await prisma.site_program.findFirst({
+    select: {
+      id: true,
+      Site__c: true,
+      Program__c: true
+    },
+    where: { id: siteProgramId },
+    rejectOnNotFound: true
+  })
+
+  const site = await prisma.site.findFirst({
+    where: {
+      Status__c: { in: ['Active', 'Active - Online Only'] },
+      id: siteProgram.Site__c as string
+    },
+    rejectOnNotFound: true
+  })
+
+  const program = await prisma.program.findFirst({
+    where: {
+      Status__c: { not: 'Inactive' },
+      id: siteProgram.Program__c as string
+    },
+    rejectOnNotFound: true
+  })
+
+  const agency = await prisma.agency.findFirst({
+    where: {
+      Status__c: { in: ['Active', 'Active - Online Only'] },
+      id: program.Account__c as string
+    },
+    rejectOnNotFound: true
+  })
+
+  const result = _buildResult(siteProgram, site, program, agency)
+
+  if (meta) {
+    result.meta = {
+      site,
+      program,
+      siteProgram,
+      agency
+    }
+  }
+
+  return result
 }
 
 export async function instantSearch(searchText: string, userId: string) {
@@ -380,4 +616,192 @@ export async function instantSearch(searchText: string, userId: string) {
   }
 
   return suggestions
+}
+
+export async function getFacets(input: SearchInput = {}, options: SearchOptions = {}) {
+  debug('[getFacets] input=%j options=%j', input, options)
+
+  const cacheKey = { ...input, filters: undefined }
+  let cachedFilters = filtersCache.get(cacheKey)
+
+  if (!cachedFilters) {
+    let cachedResults = resultsCache.get(cacheKey)
+    let numRetries = 1
+    while (!cachedResults) {
+      if (numRetries < 3) {
+        debug('[getFacets] sleep for 2s, numRetries=%s', numRetries)
+        await wait(2000)
+        cachedResults = resultsCache.get(cacheKey)
+        if (cachedResults) {
+          debug('[getFacets] got cachedResults after sleep, numRetries=%s', numRetries)
+        } else {
+          debug('[getFacets] still no cachedResults after sleep, numRetries=%s', numRetries)
+        }
+        numRetries++
+      } else {
+        debug('[getFacets] no luck, numRetries=%s', numRetries)
+        return null
+      }
+    }
+
+    debug('[getFacets] cachedResults.length=%s', cachedResults.length)
+
+    const siteProgramIds = cachedResults.map((r) => r.id)
+    const records = await getRecords(siteProgramIds)
+    const resultsPromise = cachedResults.map((r) => buildResultSync(r.id, true, records))
+    const results = await Promise.all(resultsPromise)
+    const facets: any = {
+      openNow: [],
+      groups: []
+    }
+
+    const languageGroup = { name: 'Language', items: [] as any[] }
+    if (results.some((r) => !!r.languages)) {
+      facets.groups.push(languageGroup)
+    }
+
+    const ageGroup = { name: 'Age', items: [] as any[] }
+    if (results.some((r) => !!r.ageRestrictions)) {
+      facets.groups.push(ageGroup)
+    }
+
+    const costGroup = { name: 'Cost', items: [] as any[] }
+    if (results.some((r) => !!r.fees)) {
+      facets.groups.push(costGroup)
+    }
+
+    const now = DateTime.now().setZone('Pacific/Honolulu')
+    const nowWeekday = now.weekday
+    const nowTime = now.toFormat('HHmm')
+
+    for (const result of results) {
+      const program: Program = result?.meta?.program
+      if (!program) {
+        continue
+      }
+
+      // openNow facet
+
+      if (program.Open_247__c === '1') {
+        facets.openNow.push(result.id)
+      } else {
+        const allhours = [
+          [program.Open_Time_Sunday__c, program.Close_Time_Sunday__c],
+          [program.Open_Time_Monday__c, program.Close_Time_Monday__c],
+          [program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c],
+          [program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c],
+          [program.Open_Time_Thursday__c, program.Close_Time_Thursday__c],
+          [program.Open_Time_Friday__c, program.Close_Time_Friday__c],
+          [program.Open_Time_Saturday__c, program.Close_Time_Saturday__c]
+        ]
+
+        const hours = allhours[nowWeekday - 1] as [string, string]
+        const openTime = parseTimeString(hours[0])
+        const closeTime = parseTimeString(hours[1])
+        if (openTime && closeTime) {
+          if (nowTime >= openTime && nowTime <= closeTime) {
+            facets.openNow.push(result.id)
+          }
+        }
+      }
+
+      // languages facet
+
+      if (result.languages) {
+        const tokens = result.languages.split(',').map((s) => s.trim())
+        for (const lang of tokens) {
+          let item = languageGroup.items.find((i) => i.name === lang)
+          if (item) {
+            item.ids.push(result.id)
+          } else {
+            languageGroup.items.push({ name: lang, ids: [result.id] })
+          }
+        }
+      }
+
+      // age restrictions facet
+
+      if (result.ageRestrictions) {
+        let item = ageGroup.items.find((i) => i.name === result.ageRestrictions)
+        if (item) {
+          item.ids.push(result.id)
+        } else {
+          ageGroup.items.push({ name: result.ageRestrictions, ids: [result.id] })
+        }
+      }
+
+      // cost facet
+
+      if (result.fees) {
+        let item = costGroup.items.find((i) => i.name === result.fees)
+        if (item) {
+          item.ids.push(result.id)
+        } else {
+          costGroup.items.push({ name: result.fees, ids: [result.id] })
+        }
+      }
+    }
+
+    languageGroup.items.sort((a, b) => {
+      if (a.name.split(/\s+/).length > 2) {
+        return 1
+      }
+      if (b.name.split(/\s+/).length > 2) {
+        return -1
+      }
+      return a.name.localeCompare(b.name)
+    })
+
+    const minAgeRegex = /(\d+)\+/
+    const maxAgeRegex = /Under (\d+)/
+    const ageRangeRegex = /(\d+)-(\d+)/
+    ageGroup.items.sort((a, b) => {
+      let ax, bx, tmp
+
+      if ((tmp = minAgeRegex.exec(a.name))) {
+        ax = Number(tmp[1])
+      } else if ((tmp = maxAgeRegex.exec(a.name))) {
+        ax = Number(tmp[1])
+      } else if ((tmp = ageRangeRegex.exec(a.name))) {
+        ax = Number(tmp[1])
+      }
+
+      if ((tmp = minAgeRegex.exec(b.name))) {
+        bx = Number(tmp[1])
+      } else if ((tmp = maxAgeRegex.exec(b.name))) {
+        bx = Number(tmp[1])
+      } else if ((tmp = ageRangeRegex.exec(b.name))) {
+        bx = Number(tmp[1])
+      }
+
+      if (Number.isFinite(ax) && Number.isFinite(bx)) {
+        return ax - bx
+      } else if (Number.isFinite(ax)) {
+        return -1
+      } else if (Number.isFinite(bx)) {
+        return 1
+      }
+
+      return 0
+    })
+
+    costGroup.items.sort((a, b) => a.name.localeCompare(b.name))
+
+    filtersCache.set(cacheKey, facets)
+
+    cachedFilters = facets
+  }
+
+  const rv = {
+    openNow: cachedFilters.openNow.length > 0,
+    groups: cachedFilters.groups.map((g) => ({
+      name: g.name,
+      items: g.items.map((i) => ({
+        name: i.name,
+        count: i.ids.length
+      }))
+    }))
+  }
+
+  return rv
 }

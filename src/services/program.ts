@@ -1,60 +1,51 @@
+import { program as Program } from '@prisma/client'
 import prisma from '../lib/prisma'
 import { buildHours } from '../util'
 
 const debug = require('debug')('app:services:program')
 
-export async function getProgramDetails(spId: string) {
-  const siteProgram = await prisma.site_program.findFirst({
-    select: {
-      id: true,
-      Site__c: true,
-      Program__c: true
-    },
-    where: { id: spId },
-    rejectOnNotFound: true
-  })
+let categoryMap = {}
 
-  const site = await prisma.site.findFirst({
-    where: {
-      Status__c: { in: ['Active', 'Active - Online Only'] },
-      id: siteProgram.Site__c as string
-    },
-    rejectOnNotFound: true
-  })
-
-  const program = await prisma.program.findFirst({
-    where: {
-      Status__c: { not: 'Inactive' },
-      id: siteProgram.Program__c as string
-    },
-    rejectOnNotFound: true
-  })
-
-  const agency = await prisma.agency.findFirst({
-    where: {
-      Status__c: { in: ['Active', 'Active - Online Only'] },
-      id: program.Account__c as string
-    },
-    rejectOnNotFound: true
-  })
-
-  const categories: any[] = []
+async function init() {
+  debug('[init]')
   const psList = await prisma.program_service.findMany({
-    select: { Taxonomy__c: true },
-    where: { Program__c: program.id }
+    select: { Program__c: true, Taxonomy__c: true }
   })
-  const taxIds = psList.map((ps) => ps.Taxonomy__c)
+
   const taxList = await prisma.taxonomy.findMany({
-    select: { Name: true, Code__c: true },
-    where: {
-      id: { in: taxIds },
-      Status__c: { not: 'Inactive' }
-    }
+    select: { id: true, Name: true, Code__c: true },
+    where: { Status__c: { not: 'Inactive' } }
   })
-  for (const tax of taxList) {
-    categories.push({ value: tax.Code__c, label: tax.Name })
+
+  categoryMap = {}
+  for (const ps of psList) {
+    if (!categoryMap[ps.Program__c]) {
+      categoryMap[ps.Program__c] = []
+    }
+    const tax = taxList.find((t) => t.id === ps.Taxonomy__c)
+    if (tax) {
+      categoryMap[ps.Program__c].push({ value: tax.Code__c, label: tax.Name })
+    }
   }
 
+  debug('[init] added %s entries to categoryMap', Object.keys(categoryMap).length)
+  const tenMinutes = 1000 * 60 * 10
+  setTimeout(() => {
+    init()
+  }, tenMinutes)
+}
+
+export function getCategories(program: Program) {
+  const rv = categoryMap[program.id]
+  // if (rv) {
+  //   debug('[getCategories] found entry with %s categories for program %s', rv.length, program.id)
+  // } else {
+  //   debug('[getCategories] nothing found for program %s', program.id)
+  // }
+  return rv ?? []
+}
+
+export function getLanguages(program: Program) {
   let languages: string
   if (program.Languages_Consistently_Available__c !== null) {
     switch (program.Languages_Consistently_Available__c) {
@@ -68,6 +59,7 @@ export async function getProgramDetails(spId: string) {
             .replace('English and ', '')
             .replace('English, ', '')
             .replace('English; ', '')
+            .replace('and ', '')
         break
       default:
         languages = program.Languages_Consistently_Available__c
@@ -78,6 +70,10 @@ export async function getProgramDetails(spId: string) {
     languages = ''
   }
 
+  return languages
+}
+
+export function getApplicationProcess(program: Program) {
   let applicationProcess: string
   if (program.Intake_Procedure_Multiselect__c !== null) {
     const items = new Set(program.Intake_Procedure_Multiselect__c.split(';'))
@@ -90,20 +86,48 @@ export async function getProgramDetails(spId: string) {
     applicationProcess = ''
   }
 
+  return applicationProcess
+}
+
+export function getFees(program: Program, normalize = false) {
   let fees: string
-  if (program.Fees__c) {
-    let allFees = program.Fees__c.split(';')
-    if (allFees.includes('Other')) {
-      allFees = allFees.filter((f) => f !== 'Other')
-      if (program.Fees_Other__c) {
-        allFees.push(program.Fees_Other__c)
-      }
+  if (normalize) {
+    if (program.Fees__c === null || program.Fees__c === 'No fees') {
+      fees = 'Free'
+    } else if (program.Fees__c === 'Sliding Scale') {
+      fees = 'Sliding scale'
+    } else if (program.Fees_Other__c?.includes('per year')) {
+      fees = 'Annual fee'
+    } else if (program.Fees_Other__c?.includes('per month')) {
+      fees = 'Monthly fee'
+    } else if (program.Fees_Other__c?.includes('per week')) {
+      fees = 'Weekly fee'
+    } else if (program.Fees_Other__c?.includes('per day') || program.Fees_Other__c?.includes('per night')) {
+      fees = 'Daily fee'
+    } else if (program.Fees__c.includes('Flat Fee')) {
+      fees = 'Flat fee'
+    } else {
+      fees = 'Other'
     }
-    fees = allFees.map((f) => f.trim()).join('; ')
   } else {
-    fees = ''
+    if (program.Fees__c) {
+      let allFees = program.Fees__c.split(';')
+      if (allFees.includes('Other')) {
+        allFees = allFees.filter((f) => f !== 'Other')
+        if (program.Fees_Other__c) {
+          allFees.push(program.Fees_Other__c)
+        }
+      }
+      fees = allFees.map((f) => f.trim()).join('; ')
+    } else {
+      fees = ''
+    }
   }
 
+  return fees
+}
+
+export function getSchedule(program: Program) {
   let schedule: string
   if (program.Open_247__c == '1') {
     schedule = 'Open 24/7'
@@ -133,54 +157,32 @@ export async function getProgramDetails(spId: string) {
     schedule = ''
   }
 
-  const result: any = {
-    id: siteProgram.id,
-    title: `${program.Name} at ${site.Name}`,
-    description: program.Service_Description__c,
-    categories,
-    phone: program.Program_Phone_Text__c,
-    website: program.Website__c,
-    languages,
-    fees,
-    emergencyInfo: '',
-    eligibility: program.Eligibility_Long__c,
-    email: program.Program_Email__c,
-    schedule,
-    applicationProcess,
-    organizationName: agency.Name,
-    organizationDescription: agency.Overview__c,
-    serviceArea:
-      program.ServiceArea__c == null
-        ? null
-        : program.ServiceArea__c.toLowerCase().includes('all islands')
-        ? 'All islands'
-        : program.ServiceArea__c.replaceAll(';', ', ')
-  }
-
-  if (!site.Billing_Address_is_Confidential__c || site.Billing_Address_is_Confidential__c == '0') {
-    let street = site.Street_Number__c
-    if (street && site.City__c) {
-      if (site.Suite__c) {
-        street += ` ${site.Suite__c}`
-      }
-      let physicalAddress = street
-      if (site.City__c) {
-        physicalAddress += `, ${site.City__c}`
-        if (site.State__c) {
-          physicalAddress += ` ${site.State__c}`
-          if (site.Zip_Code__c) {
-            physicalAddress += ` ${site.Zip_Code__c}`
-          }
-        }
-      }
-      result.locationName = physicalAddress
-    }
-
-    if (site.Street_Number__c && site.Location__Latitude__s && site.Location__Longitude__s) {
-      result.locationLat = site.Location__Latitude__s
-      result.locationLon = site.Location__Longitude__s
-    }
-  }
-
-  return result
+  return schedule
 }
+
+export function getServiceArea(program: Program) {
+  return program.ServiceArea__c == null
+    ? null
+    : program.ServiceArea__c.toLowerCase().includes('all islands')
+    ? 'All islands'
+    : program.ServiceArea__c.replaceAll(';', ', ')
+}
+
+export function getAgeRestrictions(p: Program) {
+  let rv: string | null = null
+  if (p.Age_Restrictions__c?.trim().startsWith('Yes')) {
+    if (p.Maximum_Age__c === '211') {
+      p.Maximum_Age__c = null
+    }
+    if (p.Minimum_Age__c != null && p.Maximum_Age__c != null) {
+      rv = `${p.Minimum_Age__c}-${p.Maximum_Age__c}`
+    } else if (p.Minimum_Age__c != null) {
+      rv = `${p.Minimum_Age__c}+`
+    } else if (p.Maximum_Age__c != null) {
+      rv = `Under ${Number(p.Maximum_Age__c) + 1}`
+    } else if (p.Age_Restriction_Other__c != null) rv = p.Age_Restriction_Other__c
+  }
+  return rv
+}
+
+init()
