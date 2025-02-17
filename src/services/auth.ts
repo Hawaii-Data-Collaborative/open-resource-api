@@ -4,8 +4,14 @@ import { BadRequestError } from '../errors'
 import { getRandomString } from '../util'
 import { user as User } from '@prisma/client'
 import { sendEmail } from './email'
+import axios from 'axios'
 
 const debug = require('debug')('app:services:auth')
+
+const { CLOUDFLARE_PRIVATE_KEY } = process.env
+if (!CLOUDFLARE_PRIVATE_KEY) {
+  throw new Error('CLOUDFLARE_PRIVATE_KEY is missing')
+}
 
 export const hashPassword = (rawpassword: string) => bcrypt.hashSync(rawpassword, 10)
 
@@ -136,4 +142,16 @@ export async function deleteAccount(user) {
   await prisma.user.delete({ where: { id: user.id } })
   debug('[deleteAccount] deleted user %s', user.id)
   return { message: 'Your account was successfully deleted.' }
+}
+
+export async function verifyToken(token: string, ip?: string) {
+  debug('[verifyToken] token=%s... ip=%s', token.substring(0, 50), ip)
+  const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+  const data = {
+    secret: CLOUDFLARE_PRIVATE_KEY,
+    response: token,
+    remoteip: ip
+  }
+  const res = await axios.post(url, data)
+  debug('[verifyToken] res.status=%s res.data=%j', res.status, res.data)
 }

@@ -52,4 +52,10 @@ router.post('/delete-account', loginRequired(), async (ctx) => {
   ctx.body = result
 })
 
+router.post('/verify-token', async (ctx) => {
+  const { token } = ctx.request.body as any
+  const result = await authService.verifyToken(token, ctx.ip)
+  ctx.body = result
+})
+
 export default router
