@@ -191,16 +191,17 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
   const programIds = filteredPrograms.map((p) => p.id)
   const where: any = { Program__c: { in: programIds } }
 
+  let sites: Site[] | null = null
   let siteIds: string[] | null = null
   if (lat && lng) {
     const radiusMeters = radius * 1609.34
     const siteDocs = await meilisearch.index('site').search(null, {
       sort: [`_geoPoint(${lat}, ${lng}):asc`],
       filter: radius > 0 ? [`_geoRadius(${lat}, ${lng}, ${radiusMeters})`] : undefined,
-      limit: 5000,
-      attributesToRetrieve: ['id']
+      limit: 5000
     })
-    siteIds = siteDocs.hits.map((s) => s.id)
+    sites = siteDocs.hits as Site[]
+    siteIds = sites.map((s) => s.id)
     debug('[search] geosearch found %s sites', siteIds.length)
   } else {
     debug('[search] not filtering by zipCode')
@@ -219,7 +220,7 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
     }
   }
 
-  const sitePrograms = await prisma.site_program.findMany({
+  let sitePrograms = await prisma.site_program.findMany({
     select: { id: true, Site__c: true, Program__c: true },
     where
   })
@@ -231,16 +232,33 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
     siteIds?.length
   )
 
-  if (siteIds) {
-    const filteredAndSortedPrograms: any[] = []
-    for (const siteId of siteIds) {
-      const filteredSitePrograms = sitePrograms.filter((sp) => sp.Site__c === siteId)
-      for (const filteredSiteProgram of filteredSitePrograms) {
-        const tmpFilteredPrograms = filteredPrograms.filter((p) => p.id === filteredSiteProgram.Program__c)
-        filteredAndSortedPrograms.push(...tmpFilteredPrograms)
+  let results
+
+  if (sites) {
+    results = []
+    const agencyIds = _.compact(filteredPrograms.map((p) => p.Account__c))
+    const agencies = await prisma.agency.findMany({
+      where: { id: { in: agencyIds }, Status__c: { in: ['Active', 'Active - Online Only'] } }
+    })
+    const agencyMap = {}
+    for (const a of agencies) {
+      agencyMap[a.id] = a
+    }
+
+    for (const site of sites) {
+      const tmpSpList = sitePrograms.filter((sp) => sp.Site__c === site.id)
+      debug('[search] tmpSpList.length=%s', tmpSpList.length)
+      for (const siteProgram of tmpSpList) {
+        const tmpPrograms = filteredPrograms.filter((p) => p.id === siteProgram.Program__c)
+        for (const program of tmpPrograms) {
+          const agency = agencyMap[program.Account__c as string]
+          if (agency) {
+            const result = _buildResult(siteProgram, site, program, agency, true)
+            results.push(result)
+          }
+        }
       }
     }
-    filteredPrograms = filteredAndSortedPrograms
   }
 
   if (analyticsUserId) {
@@ -284,7 +302,10 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
     }
   }
 
-  const results = await buildResults(sitePrograms as SiteProgram[], filteredPrograms)
+  if (!results) {
+    results = await buildResults(sitePrograms as SiteProgram[], filteredPrograms)
+  }
+
   resultsCache.set(cacheKey, results)
 
   if (_.isEmpty(filters)) {
@@ -369,49 +390,7 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
         continue
       }
       processedIds.add(sp.id)
-
-      const locationName = site.Name
-      let physicalAddress = ''
-      let locationLat = ''
-      let locationLon = ''
-      if (!site.Billing_Address_is_Confidential__c || site.Billing_Address_is_Confidential__c == '0') {
-        let street = site.Street_Number__c
-        if (street && site.City__c) {
-          if (site.Suite__c) {
-            street += ` ${site.Suite__c}`
-          }
-          physicalAddress = street
-          if (site.Location__Latitude__s && site.Location__Longitude__s) {
-            locationLat = site.Location__Latitude__s
-            locationLon = site.Location__Longitude__s
-          }
-        }
-      }
-
-      results.push({
-        id: sp.id, //
-        siteId: sp.Site__c,
-        programId: sp.Program__c,
-        active: p.Status__c === 'Active',
-        service_name: p.Name, // - service_name, location_name, organization_name
-        location_name: locationName,
-        physical_address: physicalAddress,
-        physical_address_city: site.City__c,
-        physical_address_state: site.State__c,
-        physical_address_postal_code: site.Zip_Code__c,
-        location_latitude: locationLat,
-        location_longitude: locationLon,
-        service_short_description: p.Service_Description__c, // - service_short_description
-        phone: p.Program_Phone_Text__c, //
-        website: p.Website__c, //
-        ageRestrictions: getAgeRestrictions(p),
-        categories: getCategories(p),
-        languages: getLanguages(p),
-        fees: getFees(p, true),
-        schedule: getSchedule(p),
-        applicationProcess: getApplicationProcess(p),
-        serviceArea: getServiceArea(p)
-      })
+      results.push(_buildResult(sp, site, p, agency, true))
     }
   }
 
@@ -511,9 +490,12 @@ function _buildResult(siteProgram, site, program, agency, normalize?: boolean) {
   return result
 }
 
-export async function buildResultSync(siteProgramId: string, meta = false, records: any) {
+export function buildResultSync(siteProgramId: string, meta = false, records: any) {
   const entry = records[siteProgramId]
   const { siteProgram, site, program, agency } = entry
+  if (!(siteProgram && site && program && agency)) {
+    return null
+  }
 
   const result = _buildResult(siteProgram, site, program, agency, true)
 
@@ -648,8 +630,7 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
 
     const siteProgramIds = cachedResults.map((r) => r.id)
     const records = await getRecords(siteProgramIds)
-    const resultsPromise = cachedResults.map((r) => buildResultSync(r.id, true, records))
-    const results = await Promise.all(resultsPromise)
+    const results: any[] = _.compact(cachedResults.map((r) => buildResultSync(r.id, true, records)))
     const facets: any = {
       openNow: [],
       groups: []
