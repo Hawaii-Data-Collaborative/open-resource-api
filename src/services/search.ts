@@ -472,7 +472,7 @@ function _buildResult(siteProgram, site, program, agency, normalize?: boolean) {
       if (site.City__c) {
         physicalAddress += `, ${site.City__c}`
         if (site.State__c) {
-          physicalAddress += ` ${site.State__c}`
+          physicalAddress += `, ${site.State__c}`
           if (site.Zip_Code__c) {
             physicalAddress += ` ${site.Zip_Code__c}`
           }
