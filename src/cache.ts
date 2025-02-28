@@ -35,7 +35,11 @@ class Cache extends Base {
 
   get(k) {
     const key = JSON.stringify(cloneSorted(k))
-    debug('[get][%s] key=%s', this.name, key)
+    if (key in this._data) {
+      debug('[get][%s] found, key=%s', this.name, key)
+    } else {
+      debug('[get][%s] not found, key=%s', this.name, key)
+    }
     return this._data[key]?.value || null
   }
 }

@@ -9,6 +9,7 @@ const router = new Router({
 })
 
 router.get('/:id', async (ctx) => {
+  debug(ctx.url)
   try {
     const result = await searchService.buildResult(ctx.params.id)
     ctx.body = result
