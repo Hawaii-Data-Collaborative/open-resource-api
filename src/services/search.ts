@@ -247,7 +247,7 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
 
     for (const site of sites) {
       const tmpSpList = sitePrograms.filter((sp) => sp.Site__c === site.id)
-      debug('[search] tmpSpList.length=%s', tmpSpList.length)
+      // debug('[search] tmpSpList.length=%s', tmpSpList.length)
       for (const siteProgram of tmpSpList) {
         const tmpPrograms = filteredPrograms.filter((p) => p.id === siteProgram.Program__c)
         for (const program of tmpPrograms) {
