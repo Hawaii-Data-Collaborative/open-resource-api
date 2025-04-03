@@ -490,6 +490,8 @@ model agency {
   Partners_In_Care_PIC_Partner_Agency__c String?
 
   attributes String?
+
+  translations agency_translation[]
 }
 
 model program {
@@ -643,6 +645,8 @@ model program {
   Minimum_Age__c String?
 
   attributes String?
+
+  translations program_translation[]
 }
 
 model program_service {
@@ -802,6 +806,8 @@ model site {
   Mailing_Address_Same_as_Physical__c String?
 
   attributes String?
+
+  translations site_translation[]
 }
 
 model site_program {
@@ -865,6 +871,8 @@ model site_program {
   X211_Agency__c                 String?
   Site_Main_Phone__c             String?
   attributes                     String?
+
+  translations site_program_translation[]
 }
 
 model taxonomy {
@@ -910,6 +918,8 @@ model taxonomy {
   Secondary_Category_Search__c String?
 
   attributes String?
+
+  translations taxonomy_translation[]
 }
 
 model suggestion {
@@ -953,6 +963,8 @@ model category {
   active    Boolean
   createdAt String?
   updatedAt String?
+
+  translations category_translation[]
 }
 
 model user {
@@ -971,4 +983,107 @@ model session {
   data      String?
   createdAt String?
   updatedAt String?
+}
+
+model agency_translation {
+  id               String   @id @default(uuid())
+  agencyId         String
+  language         String
+  name             String?
+  description      String?
+  missionStatement String?
+  overview         String?
+  industry         String?
+  sicDesc          String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  agency agency @relation(fields: [agencyId], references: [id])
+
+  @@unique([agencyId, language])
+}
+
+model category_translation {
+  id         String   @id @default(uuid())
+  categoryId Int
+  language   String
+  name       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category category @relation(fields: [categoryId], references: [id])
+
+  @@unique([categoryId, language])
+}
+
+model program_translation {
+  id                 String   @id @default(uuid())
+  programId          String
+  language           String
+  name               String?
+  description        String?
+  alternateName      String?
+  eligibility        String?
+  feesText           String?
+  serviceDescription String?
+  shortDescription   String?
+  applicationProcess String?
+  waitTime           String?
+  fees               String?
+  emergencyInfo      String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  program program @relation(fields: [programId], references: [id])
+
+  @@unique([programId, language])
+}
+
+model site_translation {
+  id            String   @id @default(uuid())
+  siteId        String
+  language      String
+  name          String?
+  description   String?
+  alternateName String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  site site @relation(fields: [siteId], references: [id])
+
+  @@unique([siteId, language])
+}
+
+model site_program_translation {
+  id                 String   @id @default(uuid())
+  siteProgramId      String
+  language           String
+  name               String?
+  description        String?
+  eligibility        String?
+  fees               String?
+  intakeProcedure    String?
+  programHours       String?
+  serviceDescription String?
+  transportation     String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  siteProgram site_program @relation(fields: [siteProgramId], references: [id])
+
+  @@unique([siteProgramId, language])
+}
+
+model taxonomy_translation {
+  id         String   @id @default(uuid())
+  taxonomyId String
+  language   String
+  name       String?
+  definition String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  taxonomy taxonomy @relation(fields: [taxonomyId], references: [id])
+
+  @@unique([taxonomyId, language])
 }

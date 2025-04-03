@@ -168,19 +168,19 @@ export function getServiceArea(program: Program) {
     : program.ServiceArea__c.replaceAll(';', ', ')
 }
 
-export function getAgeRestrictions(p: Program) {
+export function getAgeRestrictions(program: Program) {
   let rv: string | null = null
-  if (p.Age_Restrictions__c?.trim().startsWith('Yes')) {
-    if (p.Maximum_Age__c === '211') {
-      p.Maximum_Age__c = null
+  if (program.Age_Restrictions__c?.trim().startsWith('Yes')) {
+    if (program.Maximum_Age__c === '211') {
+      program.Maximum_Age__c = null
     }
-    if (p.Minimum_Age__c != null && p.Maximum_Age__c != null) {
-      rv = `${p.Minimum_Age__c}-${p.Maximum_Age__c}`
-    } else if (p.Minimum_Age__c != null) {
-      rv = `${p.Minimum_Age__c}+`
-    } else if (p.Maximum_Age__c != null) {
-      rv = `Under ${Number(p.Maximum_Age__c) + 1}`
-    } else if (p.Age_Restriction_Other__c != null) rv = p.Age_Restriction_Other__c
+    if (program.Minimum_Age__c != null && program.Maximum_Age__c != null) {
+      rv = `${program.Minimum_Age__c}-${program.Maximum_Age__c}`
+    } else if (program.Minimum_Age__c != null) {
+      rv = `${program.Minimum_Age__c}+`
+    } else if (program.Maximum_Age__c != null) {
+      rv = `Under ${Number(program.Maximum_Age__c) + 1}`
+    } else if (program.Age_Restriction_Other__c != null) rv = program.Age_Restriction_Other__c
   }
   return rv
 }

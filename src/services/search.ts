@@ -253,7 +253,7 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
         for (const program of tmpPrograms) {
           const agency = agencyMap[program.Account__c as string]
           if (agency) {
-            const result = _buildResult(siteProgram, site, program, agency, true)
+            const result = _buildResult(siteProgram as SiteProgram, site, program, agency, true)
             results.push(result)
           }
         }
@@ -441,7 +441,7 @@ async function getRecords(siteProgramIds) {
   return records
 }
 
-function _buildResult(siteProgram, site, program, agency, normalize?: boolean) {
+function _buildResult(siteProgram: SiteProgram, site: Site, program: Program, agency: Agency, normalize?: boolean) {
   const result: any = {
     id: siteProgram.id,
     title: `${program.Name} at ${site.Name}`,
@@ -512,41 +512,37 @@ export function buildResultSync(siteProgramId: string, meta = false, records: an
 }
 
 export async function buildResult(siteProgramId: string, meta = false) {
-  const siteProgram = await prisma.site_program.findFirst({
+  const siteProgram = await prisma.site_program.findFirstOrThrow({
     select: {
       id: true,
       Site__c: true,
       Program__c: true
     },
-    where: { id: siteProgramId },
-    rejectOnNotFound: true
+    where: { id: siteProgramId }
   })
 
-  const site = await prisma.site.findFirst({
+  const site = await prisma.site.findFirstOrThrow({
     where: {
       Status__c: { in: ['Active', 'Active - Online Only'] },
       id: siteProgram.Site__c as string
-    },
-    rejectOnNotFound: true
+    }
   })
 
-  const program = await prisma.program.findFirst({
+  const program = await prisma.program.findFirstOrThrow({
     where: {
       Status__c: { not: 'Inactive' },
       id: siteProgram.Program__c as string
-    },
-    rejectOnNotFound: true
+    }
   })
 
-  const agency = await prisma.agency.findFirst({
+  const agency = await prisma.agency.findFirstOrThrow({
     where: {
       Status__c: { in: ['Active', 'Active - Online Only'] },
       id: program.Account__c as string
-    },
-    rejectOnNotFound: true
+    }
   })
 
-  const result = _buildResult(siteProgram, site, program, agency)
+  const result = _buildResult(siteProgram as SiteProgram, site, program, agency)
 
   if (meta) {
     result.meta = {
@@ -560,7 +556,7 @@ export async function buildResult(siteProgramId: string, meta = false) {
   return result
 }
 
-export async function instantSearch(searchText: string, userId: string) {
+export async function instantSearch(searchText: string, userId: string, lang: string) {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } })
 
   const res1 = await meilisearch
