@@ -72,6 +72,7 @@
     "koa-helmet": "^6.1.0",
     "koa-json": "^2.0.2",
     "koa-morgan": "^1.0.1",
+    "koa-session": "^7.0.2",
     "lodash": "^4.17.21",
     "luxon": "^2.5.2",
     "meilisearch": "^0.30.0",

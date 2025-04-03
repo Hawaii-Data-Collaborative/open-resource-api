@@ -7,6 +7,9 @@ const router = new Router({
 
 router.get('/', async (ctx) => {
   const lang = ctx.query.lang ?? 'en'
+  if (ctx.session) {
+    ctx.session.lang = lang
+  }
   ctx.body = labelService.getLabels(lang)
 })
 
