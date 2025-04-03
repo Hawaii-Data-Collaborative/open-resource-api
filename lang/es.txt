@@ -22,6 +22,7 @@ Change Password=Cambiar contraseña
 New Password=Nueva contraseña
 Confirm Password=Confirmar contraseña
 Want to sign in?=¿Quieres iniciar sesión?
+Already have an account?=¿Ya tienes una cuenta?
 Filters=Filtros
 Clear=Borrar
 Open now=Abierto ahora

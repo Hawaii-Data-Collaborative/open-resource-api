@@ -22,6 +22,7 @@ Change Password=E hoʻololi i ka hua huna
 New Password=Hua huna hou
 Confirm Password=E hōʻoia i ka hua huna
 Want to sign in?=Makemake e komo mai?
+Already have an account?=He moʻokāki kou?
 Filters=Nā kānana
 Clear=E holoi
 Open now=Wehe i kēia manawa

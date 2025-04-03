@@ -22,6 +22,7 @@ Change Password
 New Password
 Confirm Password
 Want to sign in?
+Already have an account?
 Filters
 Clear
 Open now
