@@ -5,6 +5,23 @@ Favorites
 Favorites
 Log in
 Sign up
+Log In
+Sign Up
+Sign In
+Forgot your password?
+Password
+Back to home page
+Don't have an account?
+Resend Verification?
+Password Reset
+Enter six digit code sent to your email
+Code
+Send Code
+Verify Code
+Change Password
+New Password
+Confirm Password
+Want to sign in?
 Filters
 Clear
 Open now
@@ -30,6 +47,7 @@ Share with Email
 Share on Facebook
 Share on Twitter
 No data was found for this result. If you believe this is a mistake, please submit a request through our feedback form.
+You must be logged in to use Favorites.
 What do you need help with?
 To find resources outside of Hawaii, use your state's 211.
 Search tips
