@@ -110,3 +110,4 @@ How to have your data removed=Cómo eliminar tus datos
 If you would like us to remove your user account, please email=Si deseas que eliminemos tu cuenta de usuario, por favor envía un correo electrónico
 from the email you used to sign up, asking us to remove your account.=desde el correo electrónico que usaste para registrarte, solicitándonos que eliminemos tu cuenta.
 Additional questions=Preguntas adicionales
+Search Service by Category=Buscar servicio por categoría

@@ -110,3 +110,4 @@ How to have your data removed=Pehea e hoʻopau ai i kāu ʻikepili
 If you would like us to remove your user account, please email=Inā makemake ʻoe e hoʻopau mākou i kāu moʻokāki mea hoʻohana, e ʻoluʻolu e leka uila
 from the email you used to sign up, asking us to remove your account.=mai ka leka uila āu i hoʻohana ai e kāinoa, e noi iā mākou e hoʻopau i kāu moʻokāki.
 Additional questions=Nā nīnau hou aku
+Search Service by Category=E ʻimi i ka lawelawe ma ka mahele
