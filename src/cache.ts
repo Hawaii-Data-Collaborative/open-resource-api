@@ -3,7 +3,7 @@ import { cloneSorted } from './util'
 
 const debug = require('debug')('app:cache')
 
-class Cache extends Base {
+export class Cache extends Base {
   name: string
   _data: any
 

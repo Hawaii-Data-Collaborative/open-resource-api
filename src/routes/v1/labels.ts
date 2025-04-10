@@ -1,5 +1,5 @@
 import Router from '@koa/router'
-import { labelService } from '../../services'
+import { LabelService } from '../../services'
 
 const router = new Router({
   prefix: '/labels'
@@ -10,7 +10,8 @@ router.get('/', async (ctx) => {
   if (ctx.session) {
     ctx.session.lang = lang
   }
-  ctx.body = labelService.getLabels(lang)
+  const labelService = new LabelService(ctx)
+  ctx.body = labelService.getLabels()
 })
 
 export default router

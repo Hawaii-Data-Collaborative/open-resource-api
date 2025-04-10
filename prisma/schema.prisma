@@ -986,7 +986,7 @@ model session {
 }
 
 model agency_translation {
-  id               String   @id @default(uuid())
+  id               Int      @id @default(autoincrement())
   agencyId         String
   language         String
   name             String?
@@ -1004,7 +1004,7 @@ model agency_translation {
 }
 
 model category_translation {
-  id         String   @id @default(uuid())
+  id         Int      @id @default(autoincrement())
   categoryId Int
   language   String
   name       String?
@@ -1017,7 +1017,7 @@ model category_translation {
 }
 
 model program_translation {
-  id                 String   @id @default(uuid())
+  id                 Int      @id @default(autoincrement())
   programId          String
   language           String
   name               String?
@@ -1040,7 +1040,7 @@ model program_translation {
 }
 
 model site_translation {
-  id            String   @id @default(uuid())
+  id            Int      @id @default(autoincrement())
   siteId        String
   language      String
   name          String?
@@ -1055,7 +1055,7 @@ model site_translation {
 }
 
 model site_program_translation {
-  id                 String   @id @default(uuid())
+  id                 Int      @id @default(autoincrement())
   siteProgramId      String
   language           String
   name               String?
@@ -1075,7 +1075,7 @@ model site_program_translation {
 }
 
 model taxonomy_translation {
-  id         String   @id @default(uuid())
+  id         Int      @id @default(autoincrement())
   taxonomyId String
   language   String
   name       String?

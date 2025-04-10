@@ -1,14 +1,15 @@
 import * as querystring from 'query-string'
-import { getCategories } from '../services/categories'
-import { search } from '../services/search'
+import { CategoryService, SearchService } from '../services'
 
 async function main() {
-  const parents = await getCategories()
+  const categoryService = new CategoryService()
+  const searchService = new SearchService()
+  const parents = await categoryService.getCategories()
   const trim = (str: string) => str.replace(/\n/g, ' ').trim()
   for (const parent of parents) {
     for (const child of parent.children) {
       const params = querystring.parse(child.params)
-      const results = await search({ taxonomies: params.taxonomies as string })
+      const results = await searchService.search({ taxonomies: params.taxonomies as string })
       console.log(
         `${parent.name} – ${child.name}:\n  ${results
           .map(

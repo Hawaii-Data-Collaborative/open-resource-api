@@ -1,5 +1,5 @@
 import Router from '@koa/router'
-import { searchService } from '../../services'
+import { SearchService } from '../../services'
 
 const debug = require('debug')('app:routes:search')
 
@@ -20,6 +20,7 @@ function parseQuery(query) {
 
 router.get('/', async (ctx) => {
   debug(ctx.url)
+  const searchService = new SearchService(ctx)
   const analyticsUserId = ctx.get('X-UID')
   const input = parseQuery(ctx.query)
   const rv = await searchService.search(input, { analyticsUserId })
@@ -28,6 +29,7 @@ router.get('/', async (ctx) => {
 
 router.get('/facets', async (ctx) => {
   debug(ctx.url)
+  const searchService = new SearchService(ctx)
   const analyticsUserId = ctx.get('X-UID')
   const input = parseQuery(ctx.query)
   const rv = await searchService.getFacets(input, { analyticsUserId })
