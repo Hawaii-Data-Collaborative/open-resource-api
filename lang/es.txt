@@ -57,6 +57,7 @@ Providers:=Proveedores:
 Click here=Haz clic aquí
 to add your programs to the 211 database.=para agregar tus programas a la base de datos 211.
 check out our tips page=visita nuestra página de consejos
+No results. If you are having a hard time finding what you're looking for,=No hay resultados. Si tienes dificultades para encontrar lo que buscas,
 or call 211.=o llama al 211.
 Log out=Cerrar sesión
 Delete account=Eliminar cuenta
