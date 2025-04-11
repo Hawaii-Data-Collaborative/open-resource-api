@@ -46,7 +46,7 @@ export class Service {
     const filepath = `lang/${lang}.txt`
     const labels = {}
     if (fs.existsSync(filepath)) {
-      const text = fs.readFileSync(filepath, 'utf8')
+      const text = fs.readFileSync(filepath, 'utf8').trim()
       text.split('\n').forEach((line) => {
         const [key, value] = line.split('=')
         labels[key] = value
@@ -62,5 +62,9 @@ export class Service {
 
   getLabels() {
     return this.labels
+  }
+
+  t(key: string) {
+    return this.labels[key] || key
   }
 }

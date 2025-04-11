@@ -586,14 +586,16 @@ export class SearchService extends Service {
       relatedSearches = await this.trendsService.getRelatedSearches(searchText, userId)
     }
 
+    const t = this.t.bind(this)
+
     const suggestions = {
-      programs: programs.map((p) => ({ ...p, group: 'Programs' })),
-      taxonomies: taxonomies.map((t) => ({ ...t, group: 'Services' })),
-      relatedSearches: relatedSearches.map((text, i) => ({ id: -(i + 1001), text, group: 'Related searches' })),
+      programs: programs.map((p) => ({ ...p, group: t('Programs') })),
+      taxonomies: taxonomies.map((tax) => ({ ...tax, group: t('Services') })),
+      relatedSearches: relatedSearches.map((text, i) => ({ id: -(i + 1001), text, group: t('Related searches') })),
       trendingSearches: trendingSearches.map((text: any, i: number) => ({
         id: -(i + 1),
         text,
-        group: 'Trending'
+        group: t('Trending')
       }))
     }
 
