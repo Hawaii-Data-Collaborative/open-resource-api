@@ -1,7 +1,9 @@
-import { program as Program } from '@prisma/client'
+import { program as Program, taxonomy as Taxonomy } from '@prisma/client'
 import prisma from '../lib/prisma'
 import { buildHours } from '../util'
 import { Service } from './base'
+import { LANGUAGES } from '../constants'
+import { TaxonomyService } from './taxonomy'
 
 const debug = require('debug')('app:services:program')
 
@@ -9,27 +11,32 @@ let categoryMap = {}
 
 async function init() {
   debug('[init]')
-  const psList = await prisma.program_service.findMany({
-    select: { Program__c: true, Taxonomy__c: true }
-  })
+  for (const lang of LANGUAGES) {
+    const psList = await prisma.program_service.findMany({
+      select: { Program__c: true, Taxonomy__c: true }
+    })
 
-  const taxList = await prisma.taxonomy.findMany({
-    select: { id: true, Name: true, Code__c: true },
-    where: { Status__c: { not: 'Inactive' } }
-  })
+    const taxList = await prisma.taxonomy.findMany({
+      select: { id: true, Name: true, Code__c: true },
+      where: { Status__c: { not: 'Inactive' } }
+    })
+    const taxonomyService = new TaxonomyService({ lang })
+    await taxonomyService.translate(taxList as Taxonomy[])
 
-  categoryMap = {}
-  for (const ps of psList) {
-    if (!categoryMap[ps.Program__c]) {
-      categoryMap[ps.Program__c] = []
+    categoryMap[lang] = {}
+    for (const ps of psList) {
+      if (!categoryMap[lang][ps.Program__c]) {
+        categoryMap[lang][ps.Program__c] = []
+      }
+      const tax = taxList.find((t) => t.id === ps.Taxonomy__c)
+      if (tax) {
+        categoryMap[lang][ps.Program__c].push({ value: tax.Code__c, label: tax.Name })
+      }
     }
-    const tax = taxList.find((t) => t.id === ps.Taxonomy__c)
-    if (tax) {
-      categoryMap[ps.Program__c].push({ value: tax.Code__c, label: tax.Name })
-    }
+
+    debug('[init] added %s entries to categoryMap for lang %s', Object.keys(categoryMap[lang]).length, lang)
   }
 
-  debug('[init] added %s entries to categoryMap', Object.keys(categoryMap).length)
   const tenMinutes = 1000 * 60 * 10
   setTimeout(() => {
     init()
@@ -187,5 +194,39 @@ export class ProgramService extends Service {
       } else if (program.Age_Restriction_Other__c != null) rv = program.Age_Restriction_Other__c
     }
     return rv
+  }
+
+  async translate(programs: Program | Program[]) {
+    const lang = this.lang
+    if (lang === 'en') {
+      return
+    }
+    if (!Array.isArray(programs)) {
+      programs = [programs]
+    }
+    const programIds = programs.map((p) => p.id)
+    const ptlist = await prisma.program_translation.findMany({
+      where: { language: lang, programId: { in: programIds } }
+    })
+    const map: { [key: string]: Program } = {}
+    for (const p of programs) {
+      map[p.id] = p
+    }
+    for (const pt of ptlist) {
+      map[pt.programId].Name = pt.name
+      map[pt.programId].Age_Restrictions__c = pt.ageRestrictions
+      map[pt.programId].Age_Restriction_Other__c = pt.ageRestrictionOther
+      map[pt.programId].Eligibility_Long__c = pt.eligibilityLong
+      map[pt.programId].Fees_Other__c = pt.feesOther
+      map[pt.programId].Fees__c = pt.fees
+      map[pt.programId].Intake_Procedure_Multiselect__c = pt.intakeProcedureMultiselect
+      map[pt.programId].Intake_Procedures_Other__c = pt.intakeProceduresOther
+      map[pt.programId].Languages_Consistently_Available__c = pt.languagesConsistentlyAvailable
+      map[pt.programId].Languages_Text__c = pt.languagesText
+      map[pt.programId].Maximum_Age__c = pt.maximumAge
+      map[pt.programId].Minimum_Age__c = pt.minimumAge
+      map[pt.programId].Program_Special_Notes_Hours__c = pt.programSpecialNotesHours
+      map[pt.programId].Service_Description__c = pt.serviceDescription
+    }
   }
 }

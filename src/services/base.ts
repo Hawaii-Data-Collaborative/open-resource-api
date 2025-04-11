@@ -9,7 +9,7 @@ export class Service {
   protected lang: string
   private labels: any
 
-  constructor(ctxOrService?: Context | Service) {
+  constructor(ctxOrService?: Context | Service | { lang: string }) {
     if (ctxOrService instanceof Service) {
       const svc = ctxOrService as Service
       this.ctx = svc.ctx
@@ -18,7 +18,7 @@ export class Service {
     } else if (ctxOrService) {
       const ctx = ctxOrService as Context
       this.ctx = ctx
-      this.lang = ctx.session?.lang ?? 'en'
+      this.lang = ctx.lang ?? ctx.session?.lang ?? 'en'
     } else {
       this.ctx = null
       this.lang = 'en'

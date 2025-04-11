@@ -871,8 +871,6 @@ model site_program {
   X211_Agency__c                 String?
   Site_Main_Phone__c             String?
   attributes                     String?
-
-  translations site_program_translation[]
 }
 
 model taxonomy {
@@ -986,17 +984,13 @@ model session {
 }
 
 model agency_translation {
-  id               Int      @id @default(autoincrement())
-  agencyId         String
-  language         String
-  name             String?
-  description      String?
-  missionStatement String?
-  overview         String?
-  industry         String?
-  sicDesc          String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  agencyId  String
+  language  String
+  name      String?
+  overview  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   agency agency @relation(fields: [agencyId], references: [id])
 
@@ -1017,22 +1011,25 @@ model category_translation {
 }
 
 model program_translation {
-  id                 Int      @id @default(autoincrement())
-  programId          String
-  language           String
-  name               String?
-  description        String?
-  alternateName      String?
-  eligibility        String?
-  feesText           String?
-  serviceDescription String?
-  shortDescription   String?
-  applicationProcess String?
-  waitTime           String?
-  fees               String?
-  emergencyInfo      String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                             Int      @id @default(autoincrement())
+  programId                      String
+  language                       String
+  name                           String?
+  ageRestrictions                String?
+  ageRestrictionOther            String?
+  eligibilityLong                String?
+  feesOther                      String?
+  fees                           String?
+  intakeProcedureMultiselect     String?
+  intakeProceduresOther          String?
+  languagesConsistentlyAvailable String?
+  languagesText                  String?
+  maximumAge                     String?
+  minimumAge                     String?
+  programSpecialNotesHours       String?
+  serviceDescription             String?
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
 
   program program @relation(fields: [programId], references: [id])
 
@@ -1040,38 +1037,16 @@ model program_translation {
 }
 
 model site_translation {
-  id            Int      @id @default(autoincrement())
-  siteId        String
-  language      String
-  name          String?
-  description   String?
-  alternateName String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  siteId    String
+  language  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   site site @relation(fields: [siteId], references: [id])
 
   @@unique([siteId, language])
-}
-
-model site_program_translation {
-  id                 Int      @id @default(autoincrement())
-  siteProgramId      String
-  language           String
-  name               String?
-  description        String?
-  eligibility        String?
-  fees               String?
-  intakeProcedure    String?
-  programHours       String?
-  serviceDescription String?
-  transportation     String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  siteProgram site_program @relation(fields: [siteProgramId], references: [id])
-
-  @@unique([siteProgramId, language])
 }
 
 model taxonomy_translation {

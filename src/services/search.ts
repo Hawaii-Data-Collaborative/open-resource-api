@@ -13,13 +13,16 @@ import prisma from '../lib/prisma'
 import { TrendsService } from './trends'
 import { filtersCache, resultsCache } from '../cache'
 import { parseTimeString, wait } from '../util'
-import { ProgramService } from './program'
 import { Service } from './base'
+import { AgencyService } from './agency'
+import { ProgramService } from './program'
+import { SiteService } from './site'
+import { TaxonomyService } from './taxonomy'
 
 const debug = require('debug')('app:services:search')
 
-let taxonomiesByCode: any
-let taxonomiesByName: any
+let taxonomiesByLangByCode: any = {}
+let taxonomiesByName: any = {}
 
 interface SearchInput {
   searchText?: string
@@ -37,12 +40,18 @@ interface SearchOptions {
 }
 
 export class SearchService extends Service {
+  agencyService: AgencyService
   programService: ProgramService
+  siteService: SiteService
+  taxonomyService: TaxonomyService
   trendsService: TrendsService
 
   constructor(ctxOrService?: Context | Service) {
     super(ctxOrService)
+    this.agencyService = new AgencyService(this)
     this.programService = new ProgramService(this)
+    this.siteService = new SiteService(this)
+    this.taxonomyService = new TaxonomyService(this)
     this.trendsService = new TrendsService(this)
   }
 
@@ -58,6 +67,9 @@ export class SearchService extends Service {
         id: { in: programIds }
       }
     })
+
+    await this.programService.translate(programs)
+
     return programs
   }
 
@@ -100,6 +112,7 @@ export class SearchService extends Service {
   async search(input: SearchInput = {}, options: SearchOptions = {}) {
     const { searchText = '', taxonomies = '', zipCode = 0, radius = 0, lat = 0, lng = 0, filters = null } = input
     const { analyticsUserId, searchTaxonomyIndex = false } = options
+    const lang = this.lang
 
     debug('[search] input=%j options=%j', input, options)
 
@@ -117,35 +130,38 @@ export class SearchService extends Service {
       }
     }
 
-    if (!taxonomiesByCode) {
-      debug('[search] populating taxonomiesByCode')
+    if (!taxonomiesByLangByCode[lang]) {
+      debug('[search] populating taxonomiesByLangByCode')
       const arr = await prisma.taxonomy.findMany({ where: { Status__c: { not: 'Inactive' } } })
-      taxonomiesByCode = {}
-      taxonomiesByName = {}
+      await this.taxonomyService.translate(arr)
+      taxonomiesByLangByCode[lang] = {}
+      taxonomiesByName[lang] = {}
       for (const t of arr) {
-        taxonomiesByCode[t.Code__c] = t
-        taxonomiesByName[t.Name] = t
+        taxonomiesByLangByCode[lang][t.Code__c] = t
+        taxonomiesByName[lang][t.Name] = t
       }
     }
 
     let programs: Program[] = []
 
     if (searchText) {
-      if (taxonomiesByCode[searchText]) {
-        const tid = (taxonomiesByCode[searchText] as Taxonomy).id
-        debug('[search] found taxonomy in taxonomiesByCode, searchText=%s tid=%s', searchText, tid)
+      if (taxonomiesByLangByCode[lang][searchText]) {
+        const tid = (taxonomiesByLangByCode[lang][searchText] as Taxonomy).id
+        debug('[search] found taxonomy in taxonomiesByLangByCode, searchText=%s tid=%s', searchText, tid)
         programs = await this.findProgramsByTaxonomyIds([tid])
         debug('[search] found %s programs for that taxonomy', programs.length)
       }
 
       if (!programs.length) {
-        const res = await meilisearch.index('program').search(searchText, { limit: 5000 })
+        const programIndex = lang === 'en' ? 'program' : `program_${lang}`
+        const res = await meilisearch.index(programIndex).search(searchText, { limit: 5000 })
         programs = res.hits as Program[]
         debug('[search] main search found %s programs', programs.length)
 
         if (searchTaxonomyIndex) {
+          const taxonomyIndex = lang === 'en' ? 'taxonomy' : `taxonomy_${lang}`
           const res2 = await meilisearch
-            .index('taxonomy')
+            .index(taxonomyIndex)
             .search(searchText, { attributesToRetrieve: ['id'], limit: 5000 })
           const taxIds = res2.hits.map((t) => t.id)
           const programs2 = await this.findProgramsByTaxonomyIds(taxIds)
@@ -155,6 +171,7 @@ export class SearchService extends Service {
       }
     } else {
       programs = await prisma.program.findMany({ where: { Status__c: { not: 'Inactive' } } })
+      await this.programService.translate(programs)
       debug('[search] no search text, loaded all %s programs', programs.length)
     }
 
@@ -164,9 +181,9 @@ export class SearchService extends Service {
       const taxonomyCodes = taxonomies.split(',').map((s) => s.trim())
       const filteredTaxonomies: Taxonomy[] = []
       for (const code of taxonomyCodes) {
-        if (taxonomiesByCode[code]) {
-          debug('[search] found code %s in taxonomiesByCode', code)
-          filteredTaxonomies.push(taxonomiesByCode[code])
+        if (taxonomiesByLangByCode[lang][code]) {
+          debug('[search] found code %s in taxonomiesByLangByCode', code)
+          filteredTaxonomies.push(taxonomiesByLangByCode[lang][code])
         } else if (code.endsWith('*')) {
           const code2 = code.replaceAll('*', '').trim()
           if (code2.length) {
@@ -177,6 +194,7 @@ export class SearchService extends Service {
               }
             })
             debug('[search] found %s taxonomies for code %s', taxList.length, code)
+            await this.taxonomyService.translate(taxList)
             filteredTaxonomies.push(...taxList)
           } else {
             debug('[search] code2 is empty')
@@ -205,6 +223,7 @@ export class SearchService extends Service {
         limit: 5000
       })
       sites = siteDocs.hits as Site[]
+      await this.siteService.translate(sites)
       siteIds = sites.map((s) => s.id)
       debug('[search] geosearch found %s sites', siteIds.length)
     } else {
@@ -244,6 +263,7 @@ export class SearchService extends Service {
       const agencies = await prisma.agency.findMany({
         where: { id: { in: agencyIds }, Status__c: { in: ['Active', 'Active - Online Only'] } }
       })
+      await this.agencyService.translate(agencies)
       const agencyMap = {}
       for (const a of agencies) {
         agencyMap[a.id] = a
@@ -349,7 +369,7 @@ export class SearchService extends Service {
         }
       }
     })
-
+    await this.siteService.translate(sites)
     const siteMap: any = {}
     for (const s of sites) {
       siteMap[s.id] = s
@@ -358,6 +378,7 @@ export class SearchService extends Service {
     if (!programs) {
       const programIds = sitePrograms.map((sp) => sp.Program__c) as string[]
       programs = await prisma.program.findMany({ where: { id: { in: programIds } } })
+      await this.programService.translate(programs)
     }
 
     const agencyIds = _.compact(programs.map((p) => p.Account__c))
@@ -366,6 +387,7 @@ export class SearchService extends Service {
         id: { in: agencyIds }
       }
     })
+    await this.agencyService.translate(agencies)
     const agencyMap: any = {}
     for (const a of agencies) {
       agencyMap[a.id] = a
@@ -418,6 +440,7 @@ export class SearchService extends Service {
       }
     })
     sites = sites.filter((s) => ['Active', 'Active - Online Only'].includes(s.Status__c as string))
+    await this.siteService.translate(sites)
 
     const programIds = sitePrograms.map((sp) => sp.Program__c as string)
     let programs = await prisma.program.findMany({
@@ -426,6 +449,7 @@ export class SearchService extends Service {
       }
     })
     programs = programs.filter((p) => p.Status__c !== 'Inactive')
+    await this.programService.translate(programs)
 
     const agencyIds = programs.map((p) => p.Account__c as string)
     let agencies = await prisma.agency.findMany({
@@ -434,6 +458,7 @@ export class SearchService extends Service {
       }
     })
     agencies = agencies.filter((a) => ['Active', 'Active - Online Only'].includes(a.Status__c as string))
+    await this.agencyService.translate(agencies)
 
     const records = {}
     for (const siteProgram of sitePrograms) {
@@ -561,17 +586,21 @@ export class SearchService extends Service {
   }
 
   async instantSearch(searchText: string, userId: string) {
+    const t = this.t.bind(this)
+
     const settings = await prisma.settings.findUnique({ where: { id: 1 } })
 
+    const programIndex = this.lang === 'en' ? 'program' : `program_${this.lang}`
     const res1 = await meilisearch
-      .index('program')
+      .index(programIndex)
       .search(searchText, { attributesToRetrieve: ['id', 'Name'], limit: 10 })
     const programs = res1.hits.map((p) => ({ id: p.id, text: p.Name }))
 
     let taxonomies: any[] = []
     if (settings?.enableTaxonomySearches) {
+      const taxonomyIndex = this.lang === 'en' ? 'taxonomy' : `taxonomy_${this.lang}`
       const res2 = await meilisearch
-        .index('taxonomy')
+        .index(taxonomyIndex)
         .search(searchText, { attributesToRetrieve: ['id', 'Name', 'Code__c'], limit: 10 })
       taxonomies = res2.hits.map((t) => ({ id: t.id, text: t.Name, code: t.Code__c }))
     }
@@ -585,8 +614,6 @@ export class SearchService extends Service {
     if (settings?.enableRelatedSearches && searchText && userId) {
       relatedSearches = await this.trendsService.getRelatedSearches(searchText, userId)
     }
-
-    const t = this.t.bind(this)
 
     const suggestions = {
       programs: programs.map((p) => ({ ...p, group: t('Programs') })),
@@ -604,6 +631,8 @@ export class SearchService extends Service {
 
   async getFacets(input: SearchInput = {}, options: SearchOptions = {}) {
     debug('[getFacets] input=%j options=%j', input, options)
+
+    const t = this.t.bind(this)
 
     const cacheKey = { ...input, filters: undefined }
     let cachedFilters = filtersCache.get(cacheKey)
@@ -638,17 +667,17 @@ export class SearchService extends Service {
         groups: []
       }
 
-      const languageGroup = { name: 'Language', items: [] as any[] }
+      const languageGroup = { name: t('Language'), items: [] as any[] }
       if (results.some((r) => !!r.languages)) {
         facets.groups.push(languageGroup)
       }
 
-      const ageGroup = { name: 'Age', items: [] as any[] }
+      const ageGroup = { name: t('Age'), items: [] as any[] }
       if (results.some((r) => !!r.ageRestrictions)) {
         facets.groups.push(ageGroup)
       }
 
-      const costGroup = { name: 'Cost', items: [] as any[] }
+      const costGroup = { name: t('Cost'), items: [] as any[] }
       if (results.some((r) => !!r.fees)) {
         facets.groups.push(costGroup)
       }

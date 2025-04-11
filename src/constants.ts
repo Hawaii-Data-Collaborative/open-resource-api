@@ -23,3 +23,5 @@ export const sortableAttributes = {
 
 export const COOKIE_NAME = 'Auw211Session'
 export const COOKIE_NAME_LANG = 'Auw211Lang'
+
+export const LANGUAGES = ['haw', 'en', 'es', 'zh', 'ja', 'ko', 'vi', 'tl']
