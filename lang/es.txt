@@ -115,3 +115,6 @@ Programs=Programas
 Services=Servicios
 Related searches=Búsquedas relacionadas
 Trending=Tendencias
+Language=Idioma
+Age=Edad
+Cost=Costo

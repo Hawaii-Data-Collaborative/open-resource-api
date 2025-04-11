@@ -115,3 +115,6 @@ Programs=Nā papahana
 Services=Nā lawelawe
 Related searches=Nā ʻimi pili
 Trending=Nā mea kaulana
+Language=ʻŌlelo
+Age=Makahiki
+Cost=Kumu kūʻai
