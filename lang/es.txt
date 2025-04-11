@@ -111,3 +111,7 @@ If you would like us to remove your user account, please email=Si deseas que eli
 from the email you used to sign up, asking us to remove your account.=desde el correo electrónico que usaste para registrarte, solicitándonos que eliminemos tu cuenta.
 Additional questions=Preguntas adicionales
 Search Service by Category=Buscar servicio por categoría
+Programs=Programas
+Services=Servicios
+Related searches=Búsquedas relacionadas
+Trending=Tendencias

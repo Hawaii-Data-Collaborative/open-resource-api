@@ -111,3 +111,7 @@ If you would like us to remove your user account, please email=Inā makemake ʻo
 from the email you used to sign up, asking us to remove your account.=mai ka leka uila āu i hoʻohana ai e kāinoa, e noi iā mākou e hoʻopau i kāu moʻokāki.
 Additional questions=Nā nīnau hou aku
 Search Service by Category=E ʻimi i ka lawelawe ma ka mahele
+Programs=Nā papahana
+Services=Nā lawelawe
+Related searches=Nā ʻimi pili
+Trending=Nā mea kaulana
