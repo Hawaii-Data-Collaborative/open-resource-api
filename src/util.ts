@@ -1,4 +1,4 @@
-export function buildHours(prefix: string, open: string | null, close: string | null) {
+export function buildHours(prefix: string, open: string | null, close: string | null, t: (key: string) => string) {
   let hours: string
   if (open) open = open.replaceAll(' ', '')
   if (close) close = close.replaceAll(' ', '')
@@ -6,11 +6,11 @@ export function buildHours(prefix: string, open: string | null, close: string | 
   if (open && close) {
     hours = `<span style="display: inline-block; width: 100px">${prefix}:</span> ${open} - ${close}`
   } else if (open) {
-    hours = `<span style="display: inline-block; width: 100px">${prefix}:</span> Opens at ${open}`
+    hours = `<span style="display: inline-block; width: 100px">${prefix}:</span> ${t('Opens at')} ${open}`
   } else if (close) {
-    hours = `<span style="display: inline-block; width: 100px">${prefix}:</span> Closes at ${close}`
+    hours = `<span style="display: inline-block; width: 100px">${prefix}:</span> ${t('Closes at')} ${close}`
   } else {
-    hours = `<span style="display: inline-block; width: 100px">${prefix}:</span> Closed`
+    hours = `<span style="display: inline-block; width: 100px">${prefix}:</span> ${t('Closed')}`
   }
   return hours
 }

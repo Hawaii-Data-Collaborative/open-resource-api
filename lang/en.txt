@@ -118,3 +118,36 @@ Trending
 Language
 Age
 Cost
+Monday
+Tuesday
+Wednesday
+Thursday
+Friday
+Saturday
+Sunday
+Opens at
+Closes at
+Closed
+Open 24/7
+Free
+No fees
+Sliding scale
+per year
+per month
+per week
+per day
+per night
+Annual fee
+Monthly fee
+Weekly fee
+Daily fee
+Flat fee
+Other
+all islands
+All islands
+Under
+Other (specify)
+English
+English Only
+English and Other (Specify)
+and

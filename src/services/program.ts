@@ -57,20 +57,24 @@ export class ProgramService extends Service {
   }
 
   getLanguages(program: Program) {
+    const t = this.t.bind(this)
+
     let languages: string
+    const engLabel = t('English')
     if (program.Languages_Consistently_Available__c !== null) {
       switch (program.Languages_Consistently_Available__c) {
-        case 'English Only':
-          languages = 'English'
+        case t('English Only'):
+          languages = engLabel
           break
-        case 'English and Other (Specify)':
+        case t('English and Other (Specify)'):
           languages =
-            'English, ' +
+            engLabel +
+            ', ' +
             (program.Languages_Text__c as string)
-              .replace('English and ', '')
-              .replace('English, ', '')
-              .replace('English; ', '')
-              .replace('and ', '')
+              .replace(`${engLabel} ${t('and')} `, '')
+              .replace(`${engLabel}, `, '')
+              .replace(`${engLabel}; `, '')
+              .replace(`${t('and')} `, '')
           break
         default:
           languages = program.Languages_Consistently_Available__c
@@ -85,11 +89,13 @@ export class ProgramService extends Service {
   }
 
   getApplicationProcess(program: Program) {
+    const t = this.t.bind(this)
+
     let applicationProcess: string
     if (program.Intake_Procedure_Multiselect__c !== null) {
       const items = new Set(program.Intake_Procedure_Multiselect__c.split(';'))
-      if (items.has('Other (specify)')) {
-        items.delete('Other (specify)')
+      if (items.has(t('Other (specify)'))) {
+        items.delete(t('Other (specify)'))
         items.add(program.Intake_Procedures_Other__c as string)
       }
       applicationProcess = [...items].join(', ')
@@ -101,30 +107,32 @@ export class ProgramService extends Service {
   }
 
   getFees(program: Program, normalize = false) {
+    const t = this.t.bind(this)
+
     let fees: string
     if (normalize) {
-      if (program.Fees__c === null || program.Fees__c === 'No fees') {
-        fees = 'Free'
-      } else if (program.Fees__c === 'Sliding Scale') {
-        fees = 'Sliding scale'
-      } else if (program.Fees_Other__c?.includes('per year')) {
-        fees = 'Annual fee'
-      } else if (program.Fees_Other__c?.includes('per month')) {
-        fees = 'Monthly fee'
-      } else if (program.Fees_Other__c?.includes('per week')) {
-        fees = 'Weekly fee'
-      } else if (program.Fees_Other__c?.includes('per day') || program.Fees_Other__c?.includes('per night')) {
-        fees = 'Daily fee'
-      } else if (program.Fees__c.includes('Flat Fee')) {
-        fees = 'Flat fee'
+      if (program.Fees__c === null || program.Fees__c === t('No fees')) {
+        fees = t('Free')
+      } else if (program.Fees__c === t('Sliding Scale')) {
+        fees = t('Sliding scale')
+      } else if (program.Fees_Other__c?.includes(t('per year'))) {
+        fees = t('Annual fee')
+      } else if (program.Fees_Other__c?.includes(t('per month'))) {
+        fees = t('Monthly fee')
+      } else if (program.Fees_Other__c?.includes(t('per week'))) {
+        fees = t('Weekly fee')
+      } else if (program.Fees_Other__c?.includes(t('per day')) || program.Fees_Other__c?.includes(t('per night'))) {
+        fees = t('Daily fee')
+      } else if (program.Fees__c.includes(t('Flat Fee'))) {
+        fees = t('Flat fee')
       } else {
-        fees = 'Other'
+        fees = t('Other')
       }
     } else {
       if (program.Fees__c) {
         let allFees = program.Fees__c.split(';')
-        if (allFees.includes('Other')) {
-          allFees = allFees.filter((f) => f !== 'Other')
+        if (allFees.includes(t('Other'))) {
+          allFees = allFees.filter((f) => f !== t('Other'))
           if (program.Fees_Other__c) {
             allFees.push(program.Fees_Other__c)
           }
@@ -139,9 +147,11 @@ export class ProgramService extends Service {
   }
 
   getSchedule(program: Program) {
+    const t = this.t.bind(this)
+
     let schedule: string
     if (program.Open_247__c == '1') {
-      schedule = 'Open 24/7'
+      schedule = t('Open 24/7')
     } else if (
       program.Open_Time_Monday__c ||
       program.Open_Time_Tuesday__c ||
@@ -152,13 +162,13 @@ export class ProgramService extends Service {
       program.Open_Time_Sunday__c
     ) {
       schedule = [
-        buildHours('Monday', program.Open_Time_Monday__c, program.Close_Time_Monday__c),
-        buildHours('Tuesday', program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c),
-        buildHours('Wednesday', program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c),
-        buildHours('Thursday', program.Open_Time_Thursday__c, program.Close_Time_Thursday__c),
-        buildHours('Friday', program.Open_Time_Friday__c, program.Close_Time_Friday__c),
-        buildHours('Saturday', program.Open_Time_Saturday__c, program.Close_Time_Saturday__c),
-        buildHours('Sunday', program.Open_Time_Sunday__c, program.Close_Time_Sunday__c)
+        buildHours(t('Monday'), program.Open_Time_Monday__c, program.Close_Time_Monday__c, t),
+        buildHours(t('Tuesday'), program.Open_Time_Tuesday__c, program.Close_Time_Tuesday__c, t),
+        buildHours(t('Wednesday'), program.Open_Time_Wednesday__c, program.Close_Time_Wednesday__c, t),
+        buildHours(t('Thursday'), program.Open_Time_Thursday__c, program.Close_Time_Thursday__c, t),
+        buildHours(t('Friday'), program.Open_Time_Friday__c, program.Close_Time_Friday__c, t),
+        buildHours(t('Saturday'), program.Open_Time_Saturday__c, program.Close_Time_Saturday__c, t),
+        buildHours(t('Sunday'), program.Open_Time_Sunday__c, program.Close_Time_Sunday__c, t)
       ].join('\n')
 
       if (program.Program_Special_Notes_Hours__c) {
@@ -172,14 +182,18 @@ export class ProgramService extends Service {
   }
 
   getServiceArea(program: Program) {
+    const t = this.t.bind(this)
+
     return program.ServiceArea__c == null
       ? null
-      : program.ServiceArea__c.toLowerCase().includes('all islands')
-      ? 'All islands'
+      : program.ServiceArea__c.toLowerCase().includes(t('all islands'))
+      ? t('All islands')
       : program.ServiceArea__c.replaceAll(';', ', ')
   }
 
   getAgeRestrictions(program: Program) {
+    const t = this.t.bind(this)
+
     let rv: string | null = null
     if (program.Age_Restrictions__c?.trim().startsWith('Yes')) {
       if (program.Maximum_Age__c === '211') {
@@ -190,7 +204,7 @@ export class ProgramService extends Service {
       } else if (program.Minimum_Age__c != null) {
         rv = `${program.Minimum_Age__c}+`
       } else if (program.Maximum_Age__c != null) {
-        rv = `Under ${Number(program.Maximum_Age__c) + 1}`
+        rv = `${t('Under')} ${Number(program.Maximum_Age__c) + 1}`
       } else if (program.Age_Restriction_Other__c != null) rv = program.Age_Restriction_Other__c
     }
     return rv
