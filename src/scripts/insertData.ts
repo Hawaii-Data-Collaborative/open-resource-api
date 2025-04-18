@@ -15,10 +15,13 @@ import _ from 'lodash'
 import prisma from '../lib/prisma'
 import { Agency, Program, ProgramService, Site, SiteProgram, Taxonomy } from '../types'
 import * as schema from '../schema'
+import { LANGUAGES } from '../constants'
+import { translateText } from '../translation'
 
 const execAsync = util.promisify(exec)
 const { ADMIN_EMAIL } = process.env
 let REPLACE: boolean
+let REPLACE_TRANSLATIONS: boolean
 
 /**
  * Everything in our sqlite db is a string, so:
@@ -50,6 +53,32 @@ function processData(data: any[]) {
   return rv
 }
 
+async function translateData(
+  modelName: string,
+  rows: any[],
+  fields: string[][],
+  createFn: (fkColumn: string, data: any) => Promise<any>
+) {
+  const result: any[] = []
+  for (const row of rows) {
+    for (const lang of LANGUAGES) {
+      const translatedData: any = {}
+      for (const [field, translatedField] of fields) {
+        if (row[field] != null) {
+          const translatedText = await translateText(row[field], lang)
+          translatedData[translatedField] = translatedText
+        }
+      }
+      if (Object.keys(translatedData).length > 0) {
+        const translation = await createFn(row.id, { ...translatedData, language: lang })
+        result.push(translation)
+      }
+    }
+  }
+
+  console.log('[translateData] inserted %s %s rows', result.length, modelName)
+}
+
 export async function insertAgencyData() {
   const agencyData = processData(require('../../data/json/agency.json'))
   if (!agencyData.length) {
@@ -72,6 +101,14 @@ export async function insertAgencyData() {
     result.push(agency)
   }
   console.log('[insertAgencyData] inserted %s rows', result.length)
+
+  const args2: any = REPLACE_TRANSLATIONS ? {} : { where: { agencyId: { in: result.map((x) => x.id) } } }
+  const { count: count2 } = await prisma.agency_translation.deleteMany(args2)
+  console.log('[insertAgencyData] deleted %s agency_translation rows', count2)
+  const fields = [['Overview__c', 'overview']]
+  await translateData('agency_translation', result, fields, (agencyId, data) =>
+    prisma.agency_translation.create({ data: { ...data, agencyId } })
+  )
 }
 
 let rawProgramData
@@ -115,6 +152,29 @@ export async function insertProgramData() {
     result.push(program)
   }
   console.log('[insertProgramData] inserted %s rows', result.length)
+
+  const args2: any = REPLACE_TRANSLATIONS ? {} : { where: { programId: { in: result.map((x) => x.id) } } }
+  const { count: count2 } = await prisma.program_translation.deleteMany(args2)
+  console.log('[insertProgramData] deleted %s program_translation rows', count2)
+  const fields = [
+    ['Name', 'name'],
+    ['AgeRestrictions__c', 'ageRestrictions'],
+    ['AgeRestrictionOther__c', 'ageRestrictionOther'],
+    ['EligibilityLong__c', 'eligibilityLong'],
+    ['Fees__c', 'fees'],
+    ['FeesOther__c', 'feesOther'],
+    ['IntakeProcedureMultiselect__c', 'intakeProcedureMultiselect'],
+    ['IntakeProceduresOther__c', 'intakeProceduresOther'],
+    ['LanguagesConsistentlyAvailable__c', 'languagesConsistentlyAvailable'],
+    ['LanguagesText__c', 'languagesText'],
+    ['MaximumAge__c', 'maximumAge'],
+    ['MinimumAge__c', 'minimumAge'],
+    ['ProgramSpecialNotesHours__c', 'programSpecialNotesHours'],
+    ['ServiceDescription__c', 'serviceDescription']
+  ]
+  await translateData('program_translation', result, fields, (programId, data) =>
+    prisma.program_translation.create({ data: { ...data, programId } })
+  )
 }
 
 export async function insertProgramServiceData() {
@@ -176,6 +236,14 @@ export async function insertSiteData() {
     result.push(site)
   }
   console.log('[insertSiteData] inserted %s rows', result.length)
+
+  const args2: any = REPLACE_TRANSLATIONS ? {} : { where: { siteId: { in: result.map((x) => x.id) } } }
+  const fields = [['Name', 'name']]
+  const { count: count2 } = await prisma.site_translation.deleteMany(args2)
+  console.log('[insertSiteData] deleted %s site_translation rows', count2)
+  await translateData('site_translation', result, fields, (siteId, data) =>
+    prisma.site_translation.create({ data: { ...data, siteId } })
+  )
 }
 
 export async function insertSiteProgramData() {
@@ -230,6 +298,17 @@ export async function insertTaxonomyData() {
     result.push(taxonomy)
   }
   console.log('[insertTaxonomyData] inserted %s rows', result.length)
+
+  const args2: any = REPLACE_TRANSLATIONS ? {} : { where: { taxonomyId: { in: result.map((x) => x.id) } } }
+  const { count: count2 } = await prisma.taxonomy_translation.deleteMany(args2)
+  console.log('[insertTaxonomyData] deleted %s taxonomy_translation rows', count2)
+  const fields = [
+    ['Name', 'name'],
+    ['Definition__c', 'definition']
+  ]
+  await translateData('taxonomy_translation', result, fields, (taxonomyId, data) =>
+    prisma.taxonomy_translation.create({ data: { ...data, taxonomyId } })
+  )
 }
 
 export async function cleanup() {
@@ -245,7 +324,8 @@ export async function cleanup() {
 
 export async function main() {
   REPLACE = process.argv.includes('--replace')
-  console.log('[insertData] begin, REPLACE=%s', REPLACE)
+  REPLACE_TRANSLATIONS = process.argv.includes('--replace-translations')
+  console.log('[insertData] begin, REPLACE=%s, REPLACE_TRANSLATIONS=%s', REPLACE, REPLACE_TRANSLATIONS)
   console.log('[insertData] backing up db...')
   const dbFile = './db/db.sqlite3'
   const date = dayjs().format('YYYYMMDD_HHmm')
