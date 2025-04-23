@@ -74,13 +74,15 @@ export class SearchService extends Service {
   }
 
   filterResults(results: any[], facets: any, filters: any) {
+    const t = this.t.bind(this)
+
     let filteredResults = results
     if (filters.openNow) {
       filteredResults = filteredResults.filter((r) => facets.openNow.includes(r.id))
     }
 
     const languages = Object.keys(filters)
-      .filter((k) => k.startsWith('Language.'))
+      .filter((k) => k.startsWith(t('Language') + '.'))
       .map((k) => k.split('.')[1])
 
     if (languages.length) {
@@ -91,7 +93,7 @@ export class SearchService extends Service {
     }
 
     const ageRestrictions = Object.keys(filters)
-      .filter((k) => k.startsWith('Age.'))
+      .filter((k) => k.startsWith(t('Age') + '.'))
       .map((k) => k.split('.')[1])
 
     if (ageRestrictions.length) {
@@ -99,7 +101,7 @@ export class SearchService extends Service {
     }
 
     const costGroup = Object.keys(filters)
-      .filter((k) => k.startsWith('Cost.'))
+      .filter((k) => k.startsWith(t('Cost') + '.'))
       .map((k) => k.split('.')[1])
 
     if (costGroup.length) {
@@ -560,6 +562,7 @@ export class SearchService extends Service {
         id: siteProgram.Site__c as string
       }
     })
+    await this.siteService.translate([site])
 
     const program = await prisma.program.findFirstOrThrow({
       where: {
@@ -567,6 +570,7 @@ export class SearchService extends Service {
         id: siteProgram.Program__c as string
       }
     })
+    await this.programService.translate([program])
 
     const agency = await prisma.agency.findFirstOrThrow({
       where: {
@@ -574,6 +578,7 @@ export class SearchService extends Service {
         id: program.Account__c as string
       }
     })
+    await this.agencyService.translate([agency])
 
     const result = this._buildResult(siteProgram as SiteProgram, site, program, agency)
 
