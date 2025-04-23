@@ -11,3 +11,4 @@ node_modules/
 /meilisearch*
 /dist.tar.gz
 /notes.txt
+/keys
