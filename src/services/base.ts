@@ -82,9 +82,9 @@ export class Service {
     return hits.map((hit) => {
       hit = { ...hit }
       for (const [field, translatedField] of this.translationFieldMapEntry ?? []) {
-        if (hit[field] != null) {
-          hit[translatedField] = hit[field]
-          delete hit[field]
+        if (hit[translatedField] != null) {
+          hit[field] = hit[translatedField]
+          delete hit[translatedField]
         }
       }
       return hit

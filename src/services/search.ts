@@ -154,8 +154,12 @@ export class SearchService extends Service {
 
       if (!programs.length) {
         const programIndex = lang === 'en' ? 'program' : `program_${lang}`
-        const res = await meilisearch.index(programIndex).search(searchText, { limit: 5000 })
-        programs = this.programService.normalizeHits(res.hits) as Program[]
+        const res = await meilisearch
+          .index(programIndex)
+          .search(searchText, { attributesToRetrieve: ['id'], limit: 5000 })
+        const ids = res.hits.map((h) => h.id)
+        programs = await prisma.program.findMany({ where: { id: { in: ids } } })
+        await this.programService.translate(programs)
         debug('[search] main search found %s programs', programs.length)
 
         if (searchTaxonomyIndex) {
