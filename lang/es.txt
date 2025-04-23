@@ -67,6 +67,7 @@ This program is no longer active=Este programa ya no está activo
 Remove from Favorites=Eliminar de favoritos
 Copy=Copiar
 Address unavailable=Dirección no disponible
+Loading...=Cargando...
 Loading results...=Cargando resultados...
 Results:=Resultados:
 Hide Advanced Filters=Ocultar filtros avanzados

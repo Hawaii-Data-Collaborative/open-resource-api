@@ -67,6 +67,7 @@ This program is no longer active=ʻAʻole ʻano ʻia kēia papahana
 Remove from Favorites=E wehe mai nā mea punahele
 Copy=E kope
 Address unavailable=ʻAʻole loaʻa ka helu wahi
+Loading...=Ke hoʻouka nei...
 Loading results...=Ke hoʻouka nei i nā hopena...
 Results:=Nā hopena:
 Hide Advanced Filters=E hūnā i nā kānana kiʻekiʻe
