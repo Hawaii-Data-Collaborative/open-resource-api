@@ -2,12 +2,12 @@ import { program as Program, taxonomy as Taxonomy } from '@prisma/client'
 import prisma from '../lib/prisma'
 import { buildHours } from '../util'
 import { Service } from './base'
-import { LANGUAGES } from '../constants'
+import { LANGUAGES, translationFieldMap } from '../constants'
 import { TaxonomyService } from './taxonomy'
 
 const debug = require('debug')('app:services:program')
 
-let categoryMap = {}
+const categoryMap = {}
 
 async function init() {
   debug('[init]')
@@ -46,6 +46,8 @@ async function init() {
 init()
 
 export class ProgramService extends Service {
+  translationFieldMapEntry = translationFieldMap.program
+
   getCategories(program: Program) {
     const rv = categoryMap[program.id]
     // if (rv) {

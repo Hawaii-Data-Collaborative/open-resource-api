@@ -1,10 +1,14 @@
 import { agency as Agency } from '@prisma/client'
 import prisma from '../lib/prisma'
 import { Service } from './base'
+import { translationFieldMap } from '../constants'
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const debug = require('debug')('app:services:agency')
 
 export class AgencyService extends Service {
+  translationFieldMapEntry = translationFieldMap.agency
+
   async translate(agencies: Agency | Agency[]) {
     const lang = this.lang
     if (lang === 'en') {

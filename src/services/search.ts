@@ -21,8 +21,8 @@ import { TaxonomyService } from './taxonomy'
 
 const debug = require('debug')('app:services:search')
 
-let taxonomiesByLangByCode: any = {}
-let taxonomiesByName: any = {}
+const taxonomiesByLangByCode: any = {}
+const taxonomiesByName: any = {}
 
 interface SearchInput {
   searchText?: string
@@ -155,7 +155,7 @@ export class SearchService extends Service {
       if (!programs.length) {
         const programIndex = lang === 'en' ? 'program' : `program_${lang}`
         const res = await meilisearch.index(programIndex).search(searchText, { limit: 5000 })
-        programs = res.hits as Program[]
+        programs = this.programService.normalizeHits(res.hits) as Program[]
         debug('[search] main search found %s programs', programs.length)
 
         if (searchTaxonomyIndex) {
@@ -243,7 +243,7 @@ export class SearchService extends Service {
       }
     }
 
-    let sitePrograms = await prisma.site_program.findMany({
+    const sitePrograms = await prisma.site_program.findMany({
       select: { id: true, Site__c: true, Program__c: true },
       where
     })
@@ -591,18 +591,20 @@ export class SearchService extends Service {
     const settings = await prisma.settings.findUnique({ where: { id: 1 } })
 
     const programIndex = this.lang === 'en' ? 'program' : `program_${this.lang}`
-    const res1 = await meilisearch
-      .index(programIndex)
-      .search(searchText, { attributesToRetrieve: ['id', 'Name'], limit: 10 })
-    const programs = res1.hits.map((p) => ({ id: p.id, text: p.Name }))
+    const attributesToRetrieve = this.lang === 'en' ? ['id', 'Name'] : ['id', 'name']
+    const res1 = await meilisearch.index(programIndex).search(searchText, { attributesToRetrieve, limit: 10 })
+    const programs = res1.hits.map((p) => ({ id: p.id, text: p.Name ?? p.name }))
 
     let taxonomies: any[] = []
     if (settings?.enableTaxonomySearches) {
       const taxonomyIndex = this.lang === 'en' ? 'taxonomy' : `taxonomy_${this.lang}`
       const res2 = await meilisearch
         .index(taxonomyIndex)
-        .search(searchText, { attributesToRetrieve: ['id', 'Name', 'Code__c'], limit: 10 })
-      taxonomies = res2.hits.map((t) => ({ id: t.id, text: t.Name, code: t.Code__c }))
+        .search(searchText, { attributesToRetrieve: ['id'], limit: 10 })
+      const ids = res2.hits.map((t) => t.id)
+      const tmpTaxonomies = await prisma.taxonomy.findMany({ where: { id: { in: ids } } })
+      await this.taxonomyService.translate(tmpTaxonomies)
+      taxonomies = tmpTaxonomies.map((t) => ({ id: t.id, text: t.Name, code: t.Code__c }))
     }
 
     let trendingSearches: any[] = []
@@ -722,7 +724,7 @@ export class SearchService extends Service {
         if (result.languages) {
           const tokens = result.languages.split(',').map((s) => s.trim())
           for (const lang of tokens) {
-            let item = languageGroup.items.find((i) => i.name === lang)
+            const item = languageGroup.items.find((i) => i.name === lang)
             if (item) {
               item.ids.push(result.id)
             } else {
@@ -734,7 +736,7 @@ export class SearchService extends Service {
         // age restrictions facet
 
         if (result.ageRestrictions) {
-          let item = ageGroup.items.find((i) => i.name === result.ageRestrictions)
+          const item = ageGroup.items.find((i) => i.name === result.ageRestrictions)
           if (item) {
             item.ids.push(result.id)
           } else {
@@ -745,7 +747,7 @@ export class SearchService extends Service {
         // cost facet
 
         if (result.fees) {
-          let item = costGroup.items.find((i) => i.name === result.fees)
+          const item = costGroup.items.find((i) => i.name === result.fees)
           if (item) {
             item.ids.push(result.id)
           } else {

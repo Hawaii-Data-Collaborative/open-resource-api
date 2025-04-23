@@ -8,6 +8,7 @@ export class Service {
   protected ctx: Context | null
   protected lang: string
   private labels: any
+  protected translationFieldMapEntry: string[][] | undefined
 
   constructor(ctxOrService?: Context | Service | { lang: string }) {
     if (ctxOrService instanceof Service) {
@@ -66,5 +67,27 @@ export class Service {
 
   t(key: string) {
     return this.labels[key] || key
+  }
+
+  normalizeHits(hits: any[]) {
+    if (this.lang === 'en') {
+      return hits
+    }
+
+    if (!this.translationFieldMapEntry) {
+      debug('[normalizeHits] translationFieldMapEntry is not set, skipping')
+      return hits
+    }
+
+    return hits.map((hit) => {
+      hit = { ...hit }
+      for (const [field, translatedField] of this.translationFieldMapEntry ?? []) {
+        if (hit[field] != null) {
+          hit[translatedField] = hit[field]
+          delete hit[field]
+        }
+      }
+      return hit
+    })
   }
 }

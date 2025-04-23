@@ -1,10 +1,14 @@
 import { taxonomy as Taxonomy } from '@prisma/client'
 import prisma from '../lib/prisma'
 import { Service } from './base'
+import { translationFieldMap } from '../constants'
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const debug = require('debug')('app:services:taxonomy')
 
 export class TaxonomyService extends Service {
+  translationFieldMapEntry = translationFieldMap.taxonomy
+
   async translate(taxonomies: Taxonomy | Taxonomy[]) {
     const lang = this.lang
     if (lang === 'en') {
