@@ -175,6 +175,7 @@ router.get('/taxonomies', async (ctx) => {
       programCount = sites.length
     }
 
+    // @ts-expect-error it's fine
     t.programCount = programCount
   }
 

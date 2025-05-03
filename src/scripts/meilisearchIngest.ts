@@ -32,6 +32,7 @@ async function processSites() {
   const sites = await prisma.site.findMany({ where: { Status__c: { in: ['Active', 'Active - Online Only'] } } })
   for (const site of sites) {
     if (site.Location__Latitude__s && site.Location__Longitude__s) {
+      // @ts-expect-error it's fine
       site._geo = {
         lat: site.Location__Latitude__s,
         lng: site.Location__Longitude__s

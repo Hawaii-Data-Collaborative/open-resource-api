@@ -24,7 +24,7 @@ nunjucks.configure('templates', { noCache: true })
 
 const FRONTEND_DIR = process.env.FRONTEND_DIR
 if (FRONTEND_DIR) {
-  const dir = path.join(__dirname, FRONTEND_DIR)
+  const dir = path.resolve(FRONTEND_DIR)
   if (fs.existsSync(dir)) {
     app.use(serve(dir))
     debug('serving frontend, dir=%s', dir)
