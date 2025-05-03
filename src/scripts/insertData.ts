@@ -1,10 +1,11 @@
 /**
- * This script does five things:
+ * This script does six things:
  * 1. Creates a backup of the database.
  * 2. Deletes all rows from the tables being processed by this script.
  * 3. Reads the raw data from the ./data/json folder.
  * 4. Does minor processing of the raw data.
  * 5. Inserts it into the database.
+ * 6. Translates some of the user-facing fields.
  */
 
 import { exec } from 'child_process'
@@ -23,7 +24,7 @@ const execAsync = util.promisify(exec)
 const { NODE_ENV, ADMIN_EMAIL } = process.env
 
 let REPLACE: boolean
-let REPLACE_TRANSLATIONS: boolean
+let ALL_TRANSLATIONS: boolean
 
 /**
  * Everything in our sqlite db is a string, so:
@@ -55,6 +56,8 @@ function processData(data: any[]) {
   return rv
 }
 
+let totalCharacterCount = 0
+
 async function translateData(
   modelName: string,
   rows: any[],
@@ -62,18 +65,25 @@ async function translateData(
   createFn: (fkColumn: string, data: any) => Promise<any>
 ) {
   const result: any[] = []
-  for (const row of rows) {
+  for (const [i, row] of rows.entries()) {
+    console.log('[translateData] modelName=%s row.id=%s i=%s rows.length=%s', modelName, row.id, i, rows.length)
     for (const lang of LANGUAGES) {
+      console.log('[translateData] lang=%s', lang)
       const translatedData: any = {}
       for (const [field, translatedField] of fields) {
-        if (row[field] != null) {
-          const translatedText = await translateText(row[field], lang)
+        let inputText = row[field]
+        if (typeof inputText === 'string' && inputText.trim().length > 0) {
+          inputText = inputText.trim()
+          const translatedText = await translateText(inputText, lang)
           translatedData[translatedField] = translatedText
+          totalCharacterCount += inputText.length
+          console.log('[translateData] field=%s totalCharacterCount=%s', field, totalCharacterCount)
         }
       }
       if (Object.keys(translatedData).length > 0) {
-        const translation = await createFn(row.id, { ...translatedData, language: lang })
-        result.push(translation)
+        const trow = await createFn(row.id, { ...translatedData, language: lang })
+        console.log('[translateData] created row %s', trow.id)
+        result.push(trow)
       }
     }
   }
@@ -104,10 +114,12 @@ export async function insertAgencyData() {
   }
   console.log('[insertAgencyData] inserted %s rows', result.length)
 
-  if (REPLACE_TRANSLATIONS) {
-    const { count: count2 } = await prisma.agency_translation.deleteMany()
-    console.log('[insertAgencyData] deleted %s agency_translation rows', count2)
-    result = await prisma.agency.findMany({ where: { Status__c: { in: ['Active', 'Active - Online Only'] } } })
+  if (ALL_TRANSLATIONS) {
+    const tmp = await prisma.agency_translation.findMany({ select: { agencyId: true } })
+    const ids = Array.from(new Set(tmp.map((t) => t.agencyId)))
+    result = await prisma.agency.findMany({
+      where: { Status__c: { in: ['Active', 'Active - Online Only'] }, id: { notIn: ids } }
+    })
     console.log('[insertAgencyData] loaded %s rows', result.length)
   } else {
     const { count: count2 } = await prisma.agency_translation.deleteMany({
@@ -162,10 +174,10 @@ export async function insertProgramData() {
   }
   console.log('[insertProgramData] inserted %s rows', result.length)
 
-  if (REPLACE_TRANSLATIONS) {
-    const { count: count2 } = await prisma.program_translation.deleteMany()
-    console.log('[insertProgramData] deleted %s program_translation rows', count2)
-    result = await prisma.program.findMany({ where: { Status__c: 'Active' } })
+  if (ALL_TRANSLATIONS) {
+    const tmp = await prisma.program_translation.findMany({ select: { programId: true } })
+    const ids = Array.from(new Set(tmp.map((t) => t.programId)))
+    result = await prisma.program.findMany({ where: { Status__c: 'Active', id: { notIn: ids } } })
     console.log('[insertProgramData] loaded %s rows', result.length)
   } else {
     const { count: count2 } = await prisma.program_translation.deleteMany({
@@ -239,17 +251,20 @@ export async function insertSiteData() {
   }
   console.log('[insertSiteData] inserted %s rows', result.length)
 
-  if (REPLACE_TRANSLATIONS) {
-    const { count: count2 } = await prisma.site_translation.deleteMany()
-    console.log('[insertSiteData] deleted %s site_translation rows', count2)
-    result = await prisma.site.findMany({ where: { Status__c: { in: ['Active', 'Active - Online Only'] } } })
+  if (ALL_TRANSLATIONS) {
+    const tmp = await prisma.site_translation.findMany({ select: { siteId: true } })
+    const ids = Array.from(new Set(tmp.map((t) => t.siteId)))
+    result = await prisma.site.findMany({
+      where: { Status__c: { in: ['Active', 'Active - Online Only'] }, id: { notIn: ids } }
+    })
     console.log('[insertSiteData] loaded %s rows', result.length)
   } else {
-    // const { count: count2 } = await prisma.site_translation.deleteMany({
-    //   where: { siteId: { in: result.map((x) => x.id) } }
-    // })
-    // console.log('[insertSiteData] deleted %s site_translation rows', count2)
+    const { count: count2 } = await prisma.site_translation.deleteMany({
+      where: { siteId: { in: result.map((x) => x.id) } }
+    })
+    console.log('[insertSiteData] deleted %s site_translation rows', count2)
   }
+
   await translateData('site_translation', result, translationFieldMap.site, (siteId, data) =>
     prisma.site_translation.create({ data: { ...data, siteId } })
   )
@@ -308,10 +323,10 @@ export async function insertTaxonomyData() {
   }
   console.log('[insertTaxonomyData] inserted %s rows', result.length)
 
-  if (REPLACE_TRANSLATIONS) {
-    const { count: count2 } = await prisma.taxonomy_translation.deleteMany()
-    console.log('[insertTaxonomyData] deleted %s taxonomy_translation rows', count2)
-    result = await prisma.taxonomy.findMany()
+  if (ALL_TRANSLATIONS) {
+    const tmp = await prisma.taxonomy_translation.findMany({ select: { taxonomyId: true } })
+    const ids = Array.from(new Set(tmp.map((t) => t.taxonomyId)))
+    result = await prisma.taxonomy.findMany({ where: { id: { notIn: ids } } })
     console.log('[insertTaxonomyData] loaded %s rows', result.length)
   } else {
     const { count: count2 } = await prisma.taxonomy_translation.deleteMany({
@@ -319,6 +334,7 @@ export async function insertTaxonomyData() {
     })
     console.log('[insertTaxonomyData] deleted %s taxonomy_translation rows', count2)
   }
+
   await translateData('taxonomy_translation', result, translationFieldMap.taxonomy, (taxonomyId, data) =>
     prisma.taxonomy_translation.create({ data: { ...data, taxonomyId } })
   )
@@ -346,9 +362,9 @@ export async function cleanup() {
 
 export async function main() {
   REPLACE = process.argv.includes('--replace')
-  REPLACE_TRANSLATIONS = process.argv.includes('--replace-translations')
+  ALL_TRANSLATIONS = process.argv.includes('--all-translations')
   const processCategoryTable = process.argv.includes('--process-category-table')
-  console.log('[insertData] begin, REPLACE=%s, REPLACE_TRANSLATIONS=%s', REPLACE, REPLACE_TRANSLATIONS)
+  console.log('[insertData] begin, REPLACE=%s, ALL_TRANSLATIONS=%s', REPLACE, ALL_TRANSLATIONS)
   console.log('[insertData] backing up db...')
   const dbFile = './db/db.sqlite3'
   const date = dayjs().format('YYYYMMDD_HHmmss')

@@ -11,7 +11,7 @@ async function main() {
       const params = querystring.parse(child.params)
       const results = await searchService.search({ taxonomies: params.taxonomies as string })
       console.log(
-        `${parent.name} – ${child.name}:\n  ${results
+        `${parent.name} – ${child.name}:\n  ${results
           .map(
             (r: any) =>
               `${r._source.location_name} at ${r._source.service_name}\n    ${trim(

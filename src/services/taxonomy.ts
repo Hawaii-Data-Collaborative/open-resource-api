@@ -27,7 +27,7 @@ export class TaxonomyService extends Service {
     }
     for (const tt of ttlist) {
       map[tt.taxonomyId].Name = tt.name as string
-      map[tt.taxonomyId].Definition__c = tt.definition
+      // map[tt.taxonomyId].Definition__c = tt.definition
     }
   }
 }

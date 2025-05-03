@@ -46,8 +46,8 @@ export const translationFieldMap = {
   ],
   site: [['Name', 'name']],
   taxonomy: [
-    ['Name', 'name'],
-    ['Definition__c', 'definition']
+    ['Name', 'name']
+    // ['Definition__c', 'definition']
   ],
   category: [['name', 'name']]
 }
