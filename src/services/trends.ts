@@ -7,7 +7,7 @@ import prisma from '../lib/prisma'
 const CREATED_DATE_AS_INT = `cast(replace(substr("createdAt", 0, 11), '-', '') as integer)`
 
 export async function getTrendingSearches() {
-  const settings = await prisma.settings.findUnique({ where: { id: 1 }, rejectOnNotFound: true })
+  const settings = await prisma.settings.findUniqueOrThrow({ where: { id: 1 } })
   if (settings.manualTrends) {
     const trends = JSON.parse(settings.trends as string)
     return trends
@@ -87,7 +87,7 @@ export async function getRelatedSearches(searchText: string, currentUserId: stri
 }
 
 /**
- * Returns successful searches – keyword searches that led to a referral – in the
+ * Returns successful searches – keyword searches that led to a referral – in the
  * shape of `Map<UserId, UserActivity[][]>`.
  *
  * The outer array contains an array of "journeys", which is one or more search

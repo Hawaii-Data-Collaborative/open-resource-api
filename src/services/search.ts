@@ -220,7 +220,7 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
     }
   }
 
-  let sitePrograms = await prisma.site_program.findMany({
+  const sitePrograms = await prisma.site_program.findMany({
     select: { id: true, Site__c: true, Program__c: true },
     where
   })
@@ -356,7 +356,7 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
     programs = await prisma.program.findMany({ where: { id: { in: programIds } } })
   }
 
-  const agencyIds = _.compact(programs.map((p) => p.Account__c))
+  const agencyIds = _.compact((programs as Program[]).map((p) => p.Account__c))
   const agencies = await prisma.agency.findMany({
     where: {
       id: { in: agencyIds }
@@ -369,7 +369,7 @@ export async function buildResults(sitePrograms: SiteProgram[], programs?: Progr
 
   const processedIds = new Set()
 
-  for (const p of programs) {
+  for (const p of programs as Program[]) {
     const agency: Agency = agencyMap[p.Account__c as string]
     if (!agency || !['Active', 'Active - Online Only'].includes(agency.Status__c as string)) {
       debug('[buildResults] skipping program %s, agency %s status=%s', p.Name, agency?.Name, agency?.Status__c)
@@ -512,38 +512,34 @@ export function buildResultSync(siteProgramId: string, meta = false, records: an
 }
 
 export async function buildResult(siteProgramId: string, meta = false) {
-  const siteProgram = await prisma.site_program.findFirst({
+  const siteProgram = await prisma.site_program.findFirstOrThrow({
     select: {
       id: true,
       Site__c: true,
       Program__c: true
     },
-    where: { id: siteProgramId },
-    rejectOnNotFound: true
+    where: { id: siteProgramId }
   })
 
-  const site = await prisma.site.findFirst({
+  const site = await prisma.site.findFirstOrThrow({
     where: {
       Status__c: { in: ['Active', 'Active - Online Only'] },
       id: siteProgram.Site__c as string
-    },
-    rejectOnNotFound: true
+    }
   })
 
-  const program = await prisma.program.findFirst({
+  const program = await prisma.program.findFirstOrThrow({
     where: {
       Status__c: { not: 'Inactive' },
       id: siteProgram.Program__c as string
-    },
-    rejectOnNotFound: true
+    }
   })
 
-  const agency = await prisma.agency.findFirst({
+  const agency = await prisma.agency.findFirstOrThrow({
     where: {
       Status__c: { in: ['Active', 'Active - Online Only'] },
       id: program.Account__c as string
-    },
-    rejectOnNotFound: true
+    }
   })
 
   const result = _buildResult(siteProgram, site, program, agency)
@@ -691,7 +687,7 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
       if (result.languages) {
         const tokens = result.languages.split(',').map((s) => s.trim())
         for (const lang of tokens) {
-          let item = languageGroup.items.find((i) => i.name === lang)
+          const item = languageGroup.items.find((i) => i.name === lang)
           if (item) {
             item.ids.push(result.id)
           } else {
@@ -703,7 +699,7 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
       // age restrictions facet
 
       if (result.ageRestrictions) {
-        let item = ageGroup.items.find((i) => i.name === result.ageRestrictions)
+        const item = ageGroup.items.find((i) => i.name === result.ageRestrictions)
         if (item) {
           item.ids.push(result.id)
         } else {
@@ -714,7 +710,7 @@ export async function getFacets(input: SearchInput = {}, options: SearchOptions 
       // cost facet
 
       if (result.fees) {
-        let item = costGroup.items.find((i) => i.name === result.fees)
+        const item = costGroup.items.find((i) => i.name === result.fees)
         if (item) {
           item.ids.push(result.id)
         } else {

@@ -46,7 +46,7 @@ router.get('/programs', async (ctx) => {
     cachedPrograms = await buildResults(sitePrograms as any, programs)
 
     setTimeout(() => {
-      // @ts-expect-error
+      // @ts-expect-error it's fine
       cachedPrograms = null
     }, CACHE_TIME)
   }
@@ -175,7 +175,6 @@ router.get('/taxonomies', async (ctx) => {
       programCount = sites.length
     }
 
-    // @ts-expect-error
     t.programCount = programCount
   }
 
@@ -226,7 +225,7 @@ router.get('/searches', async (ctx) => {
     cachedSearches = rows.map((r) => ({ label: r.term, url: encodeURIComponent(r.term) }))
 
     setTimeout(() => {
-      // @ts-expect-error
+      // @ts-expect-error it's fine
       cachedSearches = null
     }, CACHE_TIME)
   }
