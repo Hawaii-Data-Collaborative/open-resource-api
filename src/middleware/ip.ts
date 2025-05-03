@@ -11,7 +11,7 @@ function ip(): Middleware {
       return
     }
 
-    let cookie = ctx.cookies.get(COOKIE_NAME)
+    const cookie = ctx.cookies.get(COOKIE_NAME)
     if (cookie) {
       const zip = Buffer.from(cookie, 'base64').toString('ascii')
       ctx.state.zip = zip
