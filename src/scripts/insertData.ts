@@ -21,7 +21,7 @@ const { ADMIN_EMAIL } = process.env
 let REPLACE: boolean
 
 /**
- * Everything in our sqlite db is a string, so:
+ * Everything in our db is a string, so:
  * - convert numbers to strings
  * - convert booleans to '1' or '0'
  * - convert objects to json strings
@@ -234,7 +234,7 @@ export async function insertTaxonomyData() {
 
 export async function cleanup() {
   let files = await fs.readdir('./db')
-  files = files.filter((f) => /db\.sqlite3\.\d{8}_\d{4}/.test(f))
+  files = files.filter((f) => /db_backup_\d{8}_\d{4}\.sql/.test(f))
   files.sort()
   while (files.length > 20) {
     const file = `./db/${files.shift()}`
@@ -247,11 +247,20 @@ export async function main() {
   REPLACE = process.argv.includes('--replace')
   console.log('[insertData] begin, REPLACE=%s', REPLACE)
   console.log('[insertData] backing up db...')
-  const dbFile = './db/db.sqlite3'
+
   const date = dayjs().format('YYYYMMDD_HHmm')
-  const newFile = `./db/db.sqlite3.${date}`
-  await fs.copyFile(dbFile, newFile)
-  console.log('[insertData] wrote %s', newFile)
+  const backupFile = `./db/db_backup_${date}.sql`
+
+  // Extract database name from connection URL
+  const dbUrl = process.env.DB_URL
+  if (!dbUrl) {
+    throw new Error('DB_URL is not set')
+  }
+  const dbName = new URL(dbUrl).pathname.slice(1)
+
+  // Create backup using pg_dump
+  await execAsync(`pg_dump -d ${dbName} > ${backupFile}`)
+  console.log('[insertData] wrote %s', backupFile)
 
   try {
     await insertAgencyData()
@@ -262,8 +271,9 @@ export async function main() {
     await insertTaxonomyData()
     await cleanup()
   } catch (err: any) {
-    await fs.rename(newFile, dbFile)
-    console.log('[insertData] rollback due to error, moved %s to %s', newFile, dbFile)
+    // In case of error, restore from backup
+    console.log('[insertData] rollback due to error, restoring from backup')
+    await execAsync(`psql -d ${dbName} < ${backupFile}`)
     // prettier-ignore
     await execAsync(`emailadmins --to="${ADMIN_EMAIL}" --subject="[open-resource-api] insertData.ts error"`)
     throw err

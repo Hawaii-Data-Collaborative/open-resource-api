@@ -19,7 +19,7 @@ set +e
 npm run insertData
 exit_code=$?
 if [ $exit_code -eq 0 ]; then
-  print "loaded data into sqlite"
+  print "loaded data into db"
 else
   print "[ERROR] insertData failed"
   sudo ./restart.sh
@@ -28,7 +28,7 @@ fi
 set -e
 
 npm run processData
-print "postprocessed data in sqlite"
+print "postprocessed data in db"
 
 npm run meilisearchIngest
 print "loaded data into meilisearch"

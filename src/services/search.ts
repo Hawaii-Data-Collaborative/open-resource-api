@@ -267,7 +267,7 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
         data: {
           userId: analyticsUserId,
           event: 'UnmetNeeds.NoResultNearby',
-          data: JSON.stringify({
+          data: {
             terms: searchText,
             taxonomies,
             zipCode,
@@ -275,9 +275,7 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
             lat,
             lng,
             totalCount: tmpSitePrograms.length
-          }),
-          createdAt: new Date().toJSON(),
-          updatedAt: new Date().toJSON()
+          }
         }
       })
       debug('[search] created userActivity id=%s event=%s', ua.id, ua.event)
@@ -286,16 +284,14 @@ export async function search(input: SearchInput = {}, options: SearchOptions = {
         data: {
           userId: analyticsUserId,
           event: 'UnmetNeeds.NoResults',
-          data: JSON.stringify({
+          data: {
             terms: searchText,
             taxonomies,
             zipCode,
             radius,
             lat,
             lng
-          }),
-          createdAt: new Date().toJSON(),
-          updatedAt: new Date().toJSON()
+          }
         }
       })
       debug('[search] created userActivity id=%s event=%s', ua.id, ua.event)

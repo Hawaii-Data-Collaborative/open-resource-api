@@ -20,9 +20,7 @@ export async function startSession(user: User, data?: any) {
     data: {
       id: getRandomString(),
       userId: user.id,
-      data: data ? JSON.stringify(data) : undefined,
-      createdAt: new Date().toJSON(),
-      updatedAt: new Date().toJSON()
+      data
     }
   })
 
@@ -44,9 +42,7 @@ export async function signup(email: string, rawpassword: string) {
     data: {
       email,
       password,
-      type: 'USER',
-      createdAt: new Date().toJSON(),
-      updatedAt: new Date().toJSON()
+      type: 'USER'
     }
   })
 
@@ -99,7 +95,7 @@ export async function checkPasswordResetCode(code: string, token: string) {
     debug('[checkPasswordResetCode] fail')
     throw new BadRequestError('Invalid code')
   }
-  const data = JSON.parse(session.data)
+  const data = session.data as any
   if (data?.code !== code) {
     debug('[checkPasswordResetCode] fail')
     throw new BadRequestError('Invalid code')
@@ -121,7 +117,7 @@ export async function resetPassword(rawpassword: string, token: string) {
   }
   const password = hashPassword(rawpassword)
   user = await prisma.user.update({
-    data: { password, updatedAt: new Date().toJSON() },
+    data: { password },
     where: { id: user.id }
   })
 

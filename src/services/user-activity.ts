@@ -1,9 +1,10 @@
+import { Prisma } from '@prisma/client'
 import prisma from '../lib/prisma'
 
 interface CreateUserActivityInput {
   userId: string
   event: string
-  data: Object
+  data: Prisma.InputJsonValue
 }
 
 export async function createUserActivity(input: CreateUserActivityInput) {
@@ -13,9 +14,7 @@ export async function createUserActivity(input: CreateUserActivityInput) {
     data: {
       userId,
       event,
-      data: data ? JSON.stringify(data) : null,
-      createdAt: new Date().toJSON(),
-      updatedAt: new Date().toJSON()
+      data
     }
   })
 

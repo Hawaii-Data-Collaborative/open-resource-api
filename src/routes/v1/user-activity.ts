@@ -14,6 +14,7 @@ const router = new Router({
 })
 
 router.post('/', ip(), async (ctx) => {
+  // eslint-disable-next-line prefer-const
   let { userId, event, data } = ctx.request.body as unknown as CreateUserActivityInput
   if (!data) {
     data = {}
@@ -26,9 +27,7 @@ router.post('/', ip(), async (ctx) => {
     data: {
       userId,
       event,
-      data: data ? JSON.stringify(data) : null,
-      createdAt: new Date().toJSON(),
-      updatedAt: new Date().toJSON()
+      data
     }
   })
 

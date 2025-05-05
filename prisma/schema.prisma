@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:../db/db.sqlite3"
+  provider = "postgresql"
+  url      = env("DB_URL")
 }
 
 model accessibility_for_disabilities {
@@ -42,11 +42,11 @@ model eligibility {
 }
 
 model favorite {
-  id            Int     @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   userId        Int
   siteProgramId String
-  updatedAt     String?
-  createdAt     String?
+  createdAt     DateTime? @default(now())
+  updatedAt     DateTime? @updatedAt
 }
 
 model funding {
@@ -913,20 +913,20 @@ model taxonomy {
 }
 
 model suggestion {
-  id         Int     @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   text       String
   taxonomies String
-  createdAt  String?
-  updatedAt  String?
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
 }
 
 model user_activity {
-  id        Int     @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   userId    String
   event     String
-  data      String?
-  createdAt String?
-  updatedAt String?
+  data      Json?
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 model settings {
@@ -938,37 +938,39 @@ model settings {
   trendingMinCount       Int
   trendingMaxShow        Int
   manualTrends           Boolean?
-  trends                 String?
+  trends                 Json?
   bannerText             String?
   bannerLink             String?
-  createdAt              String
+  createdAt              DateTime @default(now())
 }
 
 model category {
-  id        Int     @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   parentId  Int?
   name      String
   params    String?
   icon      String?
-  active    Boolean
-  createdAt String?
-  updatedAt String?
+  active    Boolean   @default(true)
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 model user {
-  id        Int     @id @default(autoincrement())
-  type      String?
-  email     String
-  password  String
-  lastLogin String?
-  createdAt String?
-  updatedAt String?
+  id                 Int       @id @default(autoincrement())
+  type               String?
+  email              String
+  password           String
+  lastLogin          DateTime?
+  passwordResetToken String?
+  passwordResetExp   DateTime?
+  createdAt          DateTime? @default(now())
+  updatedAt          DateTime? @updatedAt
 }
 
 model session {
-  id        String  @id
+  id        String    @id
   userId    Int
-  data      String?
-  createdAt String?
-  updatedAt String?
+  data      Json?
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }

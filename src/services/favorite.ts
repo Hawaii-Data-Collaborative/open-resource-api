@@ -7,9 +7,7 @@ export async function addFavorite(userId, siteProgramId) {
   const f = await prisma.favorite.create({
     data: {
       userId,
-      siteProgramId,
-      createdAt: new Date().toJSON(),
-      updatedAt: new Date().toJSON()
+      siteProgramId
     }
   })
   debug('[addFavorite] created favorite %s', f.id)

@@ -1,27 +1,24 @@
 import _ from 'lodash'
 import dayjs from '../lib/dayjs'
-import db from '../lib/db'
 import prisma from '../lib/prisma'
-
-// eslint-disable-next-line quotes
-const CREATED_DATE_AS_INT = `cast(replace(substr("createdAt", 0, 11), '-', '') as integer)`
 
 export async function getTrendingSearches() {
   const settings = await prisma.settings.findUniqueOrThrow({ where: { id: 1 } })
   if (settings.manualTrends) {
-    const trends = JSON.parse(settings.trends as string)
+    const trends = settings.trends as string[]
     return trends
   }
 
-  const start = await getTrendStartDateAsInt(settings)
-  const query = `select * from "user_activity" where "event" = 'Search.Keyword' and ${CREATED_DATE_AS_INT} >= ${start}`
-  const rows = (await db.query(query)) as any[]
+  const start = await getTrendStartDate(settings)
+  const rows = await prisma.user_activity.findMany({
+    where: { event: 'Search.Keyword', createdAt: { gte: start } }
+  })
   const searchTextToCount: any = {}
   for (const row of rows) {
     try {
-      row.data = JSON.parse(row.data as string)
-      if (row.data.terms && !row.data.taxonomies) {
-        const text = row.data.terms.toLowerCase().trim()
+      const data = row.data as any
+      if (data?.terms && !data?.taxonomies) {
+        const text = data.terms.toLowerCase().trim()
         if (!searchTextToCount[text]) {
           searchTextToCount[text] = 0
         }
@@ -44,14 +41,14 @@ export async function getTrendingSearches() {
   return rv
 }
 
-async function getTrendStartDateAsInt(settings: any) {
+async function getTrendStartDate(settings: any) {
   let unit = settings.trendingRange || 'month'
   let value = 1
   if (unit === 'quarter') {
     unit = 'month'
     value = 3
   }
-  const start = Number(dayjs().subtract(value, unit).format('YYYYMMDD'))
+  const start = dayjs().subtract(value, unit).toDate()
   return start
 }
 
@@ -116,11 +113,9 @@ export async function getSuccessfulSearchTimelines(searchText: string, currentUs
   })
 
   for (const ua of uaListFull) {
-    ua.data = JSON.parse(ua.data as string)
     if (ua.data?.terms) {
       ua.data.terms = ua.data?.terms.trim().toLowerCase()
     }
-    ua.createdAt = new Date(ua.createdAt)
   }
 
   const searchTimelines: any = {}
