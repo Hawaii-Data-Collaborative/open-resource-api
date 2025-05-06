@@ -1,5 +1,6 @@
 import Router from '@koa/router'
 
+import admin from './admin'
 import banner from './banner'
 import category from './category'
 import serviceAtlocation from './service-at-location'
@@ -32,5 +33,6 @@ router.use(relatedSearches.routes()).use(relatedSearches.allowedMethods())
 router.use(category.routes()).use(category.allowedMethods())
 router.use(banner.routes()).use(banner.allowedMethods())
 router.use(auth.routes()).use(auth.allowedMethods())
+router.use(admin.routes()).use(admin.allowedMethods())
 
 export default router
