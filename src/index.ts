@@ -12,6 +12,7 @@ import pingRouter from './routes/ping'
 import routerV1 from './routes/v1'
 import sitemap from './routes/sitemap'
 import { errorHandler } from './middleware'
+import { startCron } from './cron'
 
 const debug = require('debug')('app:server')
 
@@ -19,6 +20,7 @@ const app = new Koa()
 const PORT = Number(process.env.PORT || '3001')
 const HOSTNAME = process.env.HOSTNAME || 'localhost'
 const ACCESS_LOG = process.env.ACCESS_LOG || `${process.cwd()}/access.log`
+const CRON_ENABLED = process.env.CRON_ENABLED === '1'
 
 nunjucks.configure('templates', { noCache: true })
 
@@ -62,3 +64,7 @@ app.use(routerV1.routes()).use(routerV1.allowedMethods())
 app.use(sitemap.routes())
 
 app.listen(PORT, HOSTNAME, () => console.log(`Listening on ${HOSTNAME}:${PORT}`))
+
+if (CRON_ENABLED) {
+  startCron()
+}
