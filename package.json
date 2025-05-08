@@ -1,5 +1,5 @@
 {
-  "name": "search-211-api",
+  "name": "search.auw211.org",
   "main": "dist/index.js",
   "scripts": {
     "start": "node -r dotenv/config .",

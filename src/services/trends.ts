@@ -127,7 +127,7 @@ export async function getSuccessfulSearchTimelines(searchText: string, currentUs
     const journeys: any[] = []
     let journey: any[] = []
     let prevUa
-    for (const ua of uaList) {
+    for (const ua of uaList as any[]) {
       journey.push(ua)
 
       if (ua.event.startsWith('Referral')) {
