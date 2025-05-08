@@ -1,10 +1,19 @@
 module.exports = {
   apps: [
     {
+      name: 'meilisearch',
+      script: './meilisearch',
+      cwd: '/app/main-app',
+      args: '--master-key=dY2amaK4QVUabL4NfDcqC',
+      env: {
+        NODE_ENV: 'production'
+      }
+    },
+    {
       name: 'main-app',
       script: 'npm',
       args: 'start',
-      cwd: __dirname + '/main-app',
+      cwd: '/app/main-app',
       env: {
         PORT: 3001
       }
@@ -13,7 +22,7 @@ module.exports = {
       name: 'admin-app',
       script: 'npm',
       args: 'start',
-      cwd: __dirname + '/admin-app',
+      cwd: '/app/admin-app',
       env: {
         PORT: 3002
       }
