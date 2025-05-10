@@ -6,11 +6,17 @@ const debug = require('debug')('app:cron')
 const jobs: CronJob[] = []
 
 export function startCron() {
-  const job = new CronJob('0 12 * * *', copyDataFromSF)
-  job.name = 'copyDataFromSF'
-  job.start()
-  jobs.push(job)
-  debug('[startCron] started job %s, nextDate=%s', job.name, job.nextDate())
+  const job1 = new CronJob('0 12 * * *', copyDataFromSF)
+  job1.name = 'copyDataFromSF'
+  job1.start()
+  jobs.push(job1)
+  debug('[startCron] started job %s, nextDate=%s', job1.name, job1.nextDate())
+
+  const job2 = new CronJob('1 13 * * *', sendAnalyticsToSF)
+  job2.name = 'sendAnalyticsToSF'
+  job2.start()
+  jobs.push(job2)
+  debug('[startCron] started job %s, nextDate=%s', job2.name, job2.nextDate())
 }
 
 export function stopCron() {
@@ -32,6 +38,23 @@ function copyDataFromSF() {
     }
     if (stdout) {
       debug('[copyDataFromSF] stdout: %s', stdout)
+    }
+  })
+}
+
+function sendAnalyticsToSF() {
+  debug('[sendAnalyticsToSF] begin')
+  const cmd = 'cd /app/admin-app && npm run sfSync'
+  exec(cmd, (error, stdout, stderr) => {
+    if (error) {
+      debug('[sendAnalyticsToSF] error: %s', error)
+      return
+    }
+    if (stderr) {
+      debug('[sendAnalyticsToSF] stderr: %s', stderr)
+    }
+    if (stdout) {
+      debug('[sendAnalyticsToSF] stdout: %s', stdout)
     }
   })
 }
