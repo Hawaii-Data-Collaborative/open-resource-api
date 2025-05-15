@@ -1,8 +1,8 @@
 #!/bin/bash
 
-cd ..
+set -e
 
-docker rmi search.auw211.org
+cd ..
 
 docker build --platform linux/amd64 -f search-server/Dockerfile -t search.auw211.org .
 
