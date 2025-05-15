@@ -21,10 +21,12 @@ const debug = require('debug')('app:server')
 const app = new Koa()
 const PORT = Number(process.env.PORT || '8080')
 const ADMIN_ORIGIN = process.env.ADMIN_ORIGIN || 'http://localhost:8081'
-const ACCESS_LOG = process.env.ACCESS_LOG || `${process.cwd()}/access.log`
 const CRON_ENABLED = process.env.CRON_ENABLED === '1'
 
 nunjucks.configure('templates', { noCache: true })
+
+// Proxy /admin requests to Express server
+app.use(proxy('/admin', { target: ADMIN_ORIGIN, changeOrigin: true }))
 
 const FRONTEND_DIR = process.env.FRONTEND_DIR
 if (FRONTEND_DIR) {
@@ -40,17 +42,11 @@ if (FRONTEND_DIR) {
 }
 
 morgan.token('remote-addr', (req) => req.headers['x-real-ip'])
-const stream = fs.createWriteStream(ACCESS_LOG, { flags: 'a' })
-app.use(morgan('combined', { stream }))
+app.use(morgan('combined'))
 
 // Use proxy in production (required for ctx.hostname to work properly when behind a proxy)
 if (app.env === 'production') {
   app.proxy = true
-}
-
-let corsOptions
-if (app.env === 'development') {
-  corsOptions = { credentials: true }
 }
 
 app.use(
@@ -78,12 +74,15 @@ app.use(
     }
   })
 )
+
+let corsOptions
+if (app.env === 'development') {
+  corsOptions = { credentials: true }
+}
+
 app.use(cors(corsOptions))
 app.use(json({ pretty: false, param: 'pretty' }))
 app.use(bodyParser())
-
-// Proxy /admin requests to Express server
-app.use(proxy('/admin', { target: ADMIN_ORIGIN, changeOrigin: true }))
 
 app.use(errorHandler())
 
