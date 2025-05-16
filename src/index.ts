@@ -26,7 +26,21 @@ const CRON_ENABLED = process.env.CRON_ENABLED === '1'
 nunjucks.configure('templates', { noCache: true })
 
 // Proxy /admin requests to Express server
-app.use(proxy('/admin', { target: ADMIN_ORIGIN, changeOrigin: true }))
+app.use(
+  proxy('/admin', {
+    target: ADMIN_ORIGIN,
+    changeOrigin: true,
+    events: {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      proxyReq: (proxyReq, req, res) => {
+        const cookie = req.headers['cookie']
+        if (cookie) {
+          proxyReq.setHeader('cookie', cookie)
+        }
+      }
+    }
+  })
+)
 
 const FRONTEND_DIR = process.env.FRONTEND_DIR
 if (FRONTEND_DIR) {
