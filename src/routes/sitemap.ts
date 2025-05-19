@@ -34,7 +34,7 @@ router.get('/about', async (ctx) => {
 let cachedPrograms: any[]
 router.get('/programs', async (ctx) => {
   const { limit, offset } = getPaginationInfo(ctx)
-  const sort = (ctx.query.sort as string) ?? 'service_name'
+  const sort = (ctx.query.sort as string) ?? 'title'
 
   if (!cachedPrograms) {
     const programs = await prisma.program.findMany({ where: { Status__c: { not: 'Inactive' } } })
