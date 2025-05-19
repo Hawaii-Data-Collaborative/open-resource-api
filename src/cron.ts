@@ -3,7 +3,7 @@ import { CronJob } from 'cron'
 
 const debug = require('debug')('app:cron')
 
-const jobs: CronJob[] = []
+let jobs: CronJob[] = []
 
 export function startCron() {
   const job1 = new CronJob('0 12 * * *', copyDataFromSF)
@@ -24,6 +24,8 @@ export function stopCron() {
     job.stop()
     debug('[stopCron] stopped job %s, lastDate=%s', job.name, job.lastDate())
   }
+
+  jobs = []
 }
 
 function copyDataFromSF() {

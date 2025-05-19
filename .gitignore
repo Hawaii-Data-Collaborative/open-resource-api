@@ -1,11 +1,12 @@
-node_modules/
-.env
 .DS_STORE
+node_modules/
+/.env*
 /data
 /data.ms
 /db
 /dist
 /env
+/keys
 /tmp
 /LAST_SYNC
 /meilisearch*

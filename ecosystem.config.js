@@ -1,12 +1,12 @@
 module.exports = {
   apps: [
-    // {
-    //   name: 'meilisearch',
-    //   script: './meilisearch',
-    //   cwd: '/app/main-app',
-    //   args: '--master-key=dY2amaK4QVUabL4NfDcqC',
-    //   interpreter: 'none'
-    // },
+    {
+      name: 'meilisearch',
+      script: './meilisearch',
+      cwd: '/app/main-app',
+      args: `--master-key=${process.env.MEILISEARCH_KEY}`,
+      interpreter: 'none'
+    },
     {
       name: 'main-app',
       script: 'npm',

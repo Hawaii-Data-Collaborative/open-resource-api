@@ -65,24 +65,16 @@ router.get('/programs', async (ctx) => {
     prev: offset > 0 ? querystring.stringify({ limit: limit, offset: offset - PAGE_SIZE, sort }) : '',
     next: page.length > 0 ? querystring.stringify({ limit: limit, offset: offset + PAGE_SIZE, sort }) : '',
     columns: {
-      service_name: querystring.stringify({ sort: sort === 'service_name' ? '-service_name' : 'service_name' }),
-      location_name: querystring.stringify({ sort: sort === 'location_name' ? '-location_name' : 'location_name' }),
-      physical_address: querystring.stringify({ sort: sort === 'physical_address' ? '-physical_address' : 'physical_address' }),
-      physical_address_city: querystring.stringify({ sort: sort === 'physical_address_city' ? '-physical_address_city' : 'physical_address_city' }),
-      physical_address_state: querystring.stringify({ sort: sort === 'physical_address_state' ? '-physical_address_state' : 'physical_address_state' }),
-      physical_address_postal_code: querystring.stringify({ sort: sort === 'physical_address_postal_code' ? '-physical_address_postal_code' : 'physical_address_postal_code' }),
-      service_short_description: querystring.stringify({ sort: sort === 'service_short_description' ? '-service_short_description' : 'service_short_description' }),
+      title: querystring.stringify({ sort: sort === 'title' ? '-title' : 'title' }),
+      locationName: querystring.stringify({ sort: sort === 'locationName' ? '-locationName' : 'locationName' }),
+      description: querystring.stringify({ sort: sort === 'description' ? '-description' : 'service_short_description' }),
       phone: querystring.stringify({ sort: sort === 'phone' ? '-phone' : 'phone' }),
       website: querystring.stringify({ sort: sort === 'website' ? '-website' : 'website' }),
     },
     sort: {
-      service_name: sort === 'service_name' ? '↑' : sort === '-service_name' ? '↓' : '',
-      location_name: sort === 'location_name' ? '↑' : sort === '-location_name' ? '↓' : '',
-      physical_address: sort === 'physical_address' ? '↑' : sort === '-physical_address' ? '↓' : '',
-      physical_address_city: sort === 'physical_address_city' ? '↑' : sort === '-physical_address_city' ? '↓' : '',
-      physical_address_state: sort === 'physical_address_state' ? '↑' : sort === '-physical_address_state' ? '↓' : '',
-      physical_address_postal_code: sort === 'physical_address_postal_code' ? '↑' : sort === '-physical_address_postal_code' ? '↓' : '',
-      service_short_description: sort === 'service_short_description' ? '↑' : sort === '-service_short_description' ? '↓' : '',
+      title: sort === 'title' ? '↑' : sort === '-title' ? '↓' : '',
+      locationName: sort === 'locationName' ? '↑' : sort === '-locationName' ? '↓' : '',
+      description: sort === 'description' ? '↑' : sort === '-description' ? '↓' : '',
       phone: sort === 'phone' ? '↑' : sort === '-phone' ? '↓' : '',
       website: sort === 'website' ? '↑' : sort === '-website' ? '↓' : ''
     }
@@ -133,7 +125,7 @@ router.get('/categories/:id', async (ctx) => {
     where: { Program__c: { in: programIds } }
   })
   const searchResults = await buildResults(sitePrograms as any, programs)
-  searchResults.sort((a, b) => a.service_name.localeCompare(b.service_name))
+  searchResults.sort((a, b) => a.title.localeCompare(b.title))
   const html = nunjucks.render('category.html', {
     category: category.name,
     programs: searchResults,
@@ -206,7 +198,7 @@ router.get('/taxonomies/:id', async (ctx) => {
     where: { Program__c: { in: programIds } }
   })
   const searchResults = await buildResults(sitePrograms as any, programs)
-  searchResults.sort((a, b) => a.service_name.localeCompare(b.service_name))
+  searchResults.sort((a, b) => a.title.localeCompare(b.title))
   const html = nunjucks.render('taxonomy.html', { taxonomy, programs: searchResults })
   ctx.body = html
 })
@@ -215,9 +207,9 @@ let cachedSearches: any[]
 router.get('/searches', async (ctx) => {
   if (!cachedSearches) {
     const rows = await prisma.$queryRaw<{ term: string; count: number }[]>`
-      select json_extract(data, '$.terms') as term, count(*) AS count
+      select data->>'terms' as term, count(*) AS count
       from user_activity
-      where json_extract(data, '$.terms') is not null
+      where data->>'terms' is not null
       group by term
       order by count desc
       limit 25
