@@ -16,7 +16,7 @@ import pingRouter from './routes/ping'
 import routerV1 from './routes/v1'
 import sitemap from './routes/sitemap'
 import { errorHandler } from './middleware'
-import { startCron } from './cron'
+import { cron } from './cron'
 import { wait } from './util'
 
 const execAsync = util.promisify(exec)
@@ -31,14 +31,13 @@ const LOAD_MEILISEARCH_ON_STARTUP = process.env.LOAD_MEILISEARCH_ON_STARTUP === 
 
 nunjucks.configure('templates', { noCache: true })
 
-// Proxy /admin requests to Express server
+// Proxy /admin requests to the admin server
 app.use(
   proxy('/admin', {
     target: ADMIN_ORIGIN,
     changeOrigin: true,
     events: {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      proxyReq: (proxyReq, req, res) => {
+      proxyReq: (proxyReq, req) => {
         const cookie = req.headers['cookie']
         if (cookie) {
           proxyReq.setHeader('cookie', cookie)
@@ -48,6 +47,7 @@ app.use(
   })
 )
 
+// Serve the frontend files
 const FRONTEND_DIR = process.env.FRONTEND_DIR
 if (FRONTEND_DIR) {
   const dir = path.resolve(FRONTEND_DIR)
@@ -61,6 +61,7 @@ if (FRONTEND_DIR) {
   debug('FRONTEND_DIR is empty')
 }
 
+// Logging
 morgan.token('remote-addr', (req) => req.headers['x-real-ip'])
 app.use(morgan('combined'))
 
@@ -69,6 +70,7 @@ if (app.env === 'production') {
   app.proxy = true
 }
 
+// Content Security Policy
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -106,13 +108,14 @@ app.use(bodyParser())
 
 app.use(errorHandler())
 
-// API Version 1 routes
+// Main endpoints
 app.use(pingRouter.routes())
 app.use(routerV1.routes()).use(routerV1.allowedMethods())
 app.use(sitemap.routes())
 
+// If the main endpoints didn't handle the request, serve index.html
+// so react router can take over.
 const fileSuffixes = ['js', 'css', 'map', 'txt', 'jpg', 'jpeg', 'png', 'svg']
-
 app.use((ctx, next) => {
   debug('[middleware] %s env=%s', ctx.path, app.env)
   if (app.env === 'production') {
@@ -133,7 +136,7 @@ app.use((ctx, next) => {
 app.listen(PORT, () => debug('App server listening on port %s', PORT))
 
 if (CRON_ENABLED) {
-  startCron()
+  cron.start('ALL')
 }
 
 if (LOAD_MEILISEARCH_ON_STARTUP) {
@@ -154,7 +157,7 @@ async function loadMeilisearch() {
   while (tries < 3) {
     tries++
 
-    await wait(3000 * (tries + 1))
+    await wait(5000 * (tries + 1))
 
     try {
       const { stdout, stderr } = await execAsync('npm run meilisearchIngest')

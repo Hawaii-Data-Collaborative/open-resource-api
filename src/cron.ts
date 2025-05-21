@@ -3,30 +3,17 @@ import { CronJob } from 'cron'
 
 const debug = require('debug')('app:cron')
 
-let jobs: CronJob[] = []
+type JobName = 'copyDataFromSF' | 'sendAnalyticsToSF' | 'ALL'
 
-export function startCron() {
-  const job1 = new CronJob('0 12 * * *', copyDataFromSF)
-  job1.name = 'copyDataFromSF'
-  job1.start()
-  jobs.push(job1)
-  debug('[startCron] started job %s, nextDate=%s', job1.name, job1.nextDate())
+const jobs: Map<string, CronJob> = new Map()
 
-  const job2 = new CronJob('1 13 * * *', sendAnalyticsToSF)
-  job2.name = 'sendAnalyticsToSF'
-  job2.start()
-  jobs.push(job2)
-  debug('[startCron] started job %s, nextDate=%s', job2.name, job2.nextDate())
-}
+let job = new CronJob('0 12 * * *', copyDataFromSF)
+job.name = 'copyDataFromSF'
+jobs.set(job.name, job)
 
-export function stopCron() {
-  for (const job of jobs) {
-    job.stop()
-    debug('[stopCron] stopped job %s, lastDate=%s', job.name, job.lastDate())
-  }
-
-  jobs = []
-}
+job = new CronJob('1 13 * * *', sendAnalyticsToSF)
+job.name = 'sendAnalyticsToSF'
+jobs.set(job.name, job)
 
 function copyDataFromSF() {
   debug('[copyDataFromSF] copying data from SF')
@@ -59,4 +46,51 @@ function sendAnalyticsToSF() {
       debug('[sendAnalyticsToSF] stdout: %s', stdout)
     }
   })
+}
+
+export const cron = {
+  start(jobName: JobName) {
+    if (['ALL', 'copyDataFromSF'].includes(jobName)) {
+      const job = jobs.get('copyDataFromSF')
+      if (job) {
+        job.start()
+        debug('[startCron] started job %s, nextDate=%s', job.name, job.nextDate())
+      }
+    }
+
+    if (['ALL', 'sendAnalyticsToSF'].includes(jobName)) {
+      const job = jobs.get('sendAnalyticsToSF')
+      if (job) {
+        job.start()
+        debug('[startCron] started job %s, nextDate=%s', job.name, job.nextDate())
+      }
+    }
+  },
+
+  stop(jobName: JobName) {
+    if (['ALL', 'copyDataFromSF'].includes(jobName)) {
+      const job = jobs.get('copyDataFromSF')
+      if (job) {
+        job.stop()
+        debug('[stopCron] stopped job %s, lastDate=%s', job.name, job.lastDate())
+      }
+    }
+
+    if (['ALL', 'sendAnalyticsToSF'].includes(jobName)) {
+      const job = jobs.get('sendAnalyticsToSF')
+      if (job) {
+        job.stop()
+        debug('[stopCron] stopped job %s, lastDate=%s', job.name, job.lastDate())
+      }
+    }
+  },
+
+  getStatus() {
+    return Array.from(jobs.values()).map((job) => ({
+      name: job.name,
+      nextDate: job.nextDate(),
+      lastDate: job.lastDate(),
+      active: job.isActive
+    }))
+  }
 }

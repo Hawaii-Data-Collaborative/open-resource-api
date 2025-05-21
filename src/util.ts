@@ -18,7 +18,7 @@ export function buildHours(prefix: string, open: string | null, close: string | 
 const ALPHANUMERIC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
 const NUMERIC = '0123456789'
 
-export function getRandomString(len: number = 30, characters: 'ALPHANUMERIC' | 'NUMERIC' = 'ALPHANUMERIC') {
+export function getRandomString(len = 30, characters: 'ALPHANUMERIC' | 'NUMERIC' = 'ALPHANUMERIC') {
   let result = ''
   let i = 0
   while (i < len) {
