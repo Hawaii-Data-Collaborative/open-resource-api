@@ -14,7 +14,6 @@ RUN cd main-app && npm install --production
 RUN cd admin-app && npm install --production
 
 # Copy application code for building
-COPY search-server/keys /app/main-app/keys
 COPY search-server/prisma /app/main-app/prisma
 COPY search-server/scripts /app/main-app/scripts
 COPY search-server/src /app/main-app/src
