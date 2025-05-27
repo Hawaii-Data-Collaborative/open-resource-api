@@ -17,6 +17,7 @@
     "printCategorySearchResults": "node -r dotenv/config dist/scripts/printCategorySearchResults.js",
     "addUserActivity": "node -r dotenv/config dist/scripts/addUserActivity.js",
     "insertData": "node -r dotenv/config dist/scripts/insertData.js",
+    "translate": "node -r dotenv/config dist/scripts/translate.js",
     "test": "jest"
   },
   "license": "GNU GPLv3",
