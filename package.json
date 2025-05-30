@@ -10,7 +10,6 @@
     "watch": "tsc --watch --project src/tsconfig.json",
     "processData": "node -r dotenv/config dist/scripts/processData.js",
     "meilisearchIngest": "node -r dotenv/config dist/scripts/meilisearchIngest.js",
-    "elasticsearchIngest": "node -r dotenv/config dist/scripts/elasticsearchIngest.js",
     "meilisearchUpdateFilterableAttributes": "node -r dotenv/config dist/scripts/meilisearchUpdateFilterableAttributes.js",
     "meilisearchUpdateSearchableAttributes": "node -r dotenv/config dist/scripts/meilisearchUpdateSearchableAttributes.js",
     "meilisearchUpdateStopWords": "node -r dotenv/config dist/scripts/meilisearchUpdateStopWords.js",
@@ -55,7 +54,6 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "@elastic/elasticsearch": "^7.17.0",
     "@google-cloud/translate": "^9.0.1",
     "@koa/cors": "^5.0.0",
     "@koa/router": "^10.1.0",
