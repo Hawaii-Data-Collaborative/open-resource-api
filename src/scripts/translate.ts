@@ -50,23 +50,24 @@ async function translate() {
       }
     })
 
-    const missingLanguages = LANGUAGES.filter((lang) => !existingTranslations.some((t) => t.language === lang))
+    for (const lang of LANGUAGES) {
+      const existingTranslation = existingTranslations.find((t) => t.language === lang)
 
-    if (missingLanguages.length === 0) {
-      console.log(`[translate] i=${i} all translations exist for ${table} ${record.id}`)
-      continue
-    }
-
-    console.log(`[translate] i=${i} missing translations for ${table} ${record.id}: ${missingLanguages.join(',')}`)
-
-    // For each missing language, translate the fields and create translation records
-    for (const lang of missingLanguages) {
       const translatedData: any = {
         [`${table}Id`]: record.id,
         language: lang
       }
 
+      let doInsert = false
+
       for (const [sourceField, targetField] of fieldMap) {
+        if (existingTranslation && existingTranslation[targetField]) {
+          console.log(
+            `[translate] i=${i} ${table}_translation ${existingTranslation.id} already exists and targetField ${targetField} is populated, lang=${lang}`
+          )
+          continue
+        }
+
         let text = record[sourceField]
         if (typeof text === 'string' && text.trim().length > 0) {
           text = text.trim()
@@ -74,19 +75,29 @@ async function translate() {
             const translatedText = cache[lang][text]
             console.log(`[translate] i=${i} cache hit, lang=${lang} text="${text}" translatedText="${translatedText}"`)
             translatedData[targetField] = translatedText
+            doInsert = true
           } else {
             const translatedText = await translateText(text, lang)
             translatedData[targetField] = translatedText
             cache[lang][text] = translatedText
+            doInsert = true
           }
         }
       }
 
-      const translation = await prisma[`${table}_translation`].create({
-        data: translatedData
-      })
+      if (doInsert) {
+        const translation = await prisma[`${table}_translation`].create({
+          data: translatedData
+        })
 
-      console.log(`[translate] i=${i} created ${table}_translation ${translation.id} for language ${lang}`)
+        console.log(`[translate] i=${i} created ${table}_translation ${translation.id} for language ${lang}`)
+      } else if (existingTranslation) {
+        console.log(
+          `[translate] i=${i} ${table}_translation ${existingTranslation.id} already exists and all fields are populated, lang=${lang}`
+        )
+      } else {
+        console.log(`[translate] i=${i} nothing to do for ${table} id ${record.id}, lang=${lang}`)
+      }
     }
   }
 }
