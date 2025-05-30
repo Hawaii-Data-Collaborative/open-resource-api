@@ -2,6 +2,11 @@ import prisma from '../lib/prisma'
 import { LANGUAGES, translationFieldMap } from '../constants'
 import { translateText } from '../translation'
 
+const cache = {}
+for (const lang of LANGUAGES) {
+  cache[lang] = {}
+}
+
 async function translate() {
   // Parse CLI arguments
   const args = process.argv.slice(2)
@@ -62,10 +67,18 @@ async function translate() {
       }
 
       for (const [sourceField, targetField] of fieldMap) {
-        const text = record[sourceField]
+        let text = record[sourceField]
         if (typeof text === 'string' && text.trim().length > 0) {
-          const translatedText = await translateText(text.trim(), lang)
-          translatedData[targetField] = translatedText
+          text = text.trim()
+          if (cache[lang][text]) {
+            const translatedText = cache[lang][text]
+            console.log(`[translate] i=${i} cache hit, lang=${lang} text="${text}" translatedText="${translatedText}"`)
+            translatedData[targetField] = translatedText
+          } else {
+            const translatedText = await translateText(text, lang)
+            translatedData[targetField] = translatedText
+            cache[lang][text] = translatedText
+          }
         }
       }
 
