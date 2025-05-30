@@ -1,13 +1,14 @@
 import Router from '@koa/router'
-import { trendService } from '../../services'
+import { TrendsService } from '../../services'
 
 const router = new Router({
   prefix: '/related-searches'
 })
 
 router.get('/', async (ctx) => {
+  const trendsService = new TrendsService(ctx)
   const { searchText, userId } = ctx.query
-  const relatedSearches = await trendService.getRelatedSearches(searchText as string, userId as string)
+  const relatedSearches = await trendsService.getRelatedSearches(searchText as string, userId as string)
   ctx.body = relatedSearches
 })
 

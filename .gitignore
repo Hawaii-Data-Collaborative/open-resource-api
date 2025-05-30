@@ -1,5 +1,7 @@
-.DS_STORE
 node_modules/
+.env
+.env.*
+.DS_STORE
 /.env*
 /data
 /data.ms
@@ -12,3 +14,4 @@ node_modules/
 /meilisearch*
 /dist.tar.gz
 /notes.txt
+/keys

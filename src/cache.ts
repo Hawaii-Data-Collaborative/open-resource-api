@@ -3,18 +3,27 @@ import { cloneSorted } from './util'
 
 const debug = require('debug')('app:cache')
 
-class Cache extends Base {
+const ONE_MINUTE = 1000 * 60
+const TEN_MINUTES = ONE_MINUTE * 10
+
+export class Cache extends Base {
   name: string
+  ttl: number
   _data: any
 
-  constructor(name: string) {
+  constructor(name: string, ttl: number = TEN_MINUTES) {
     super()
     this.name = name
     this._data = {}
+    this.ttl = ttl
+  }
+
+  private getKey(k) {
+    return typeof k === 'string' ? k : JSON.stringify(cloneSorted(k))
   }
 
   set(k, v) {
-    const key = JSON.stringify(cloneSorted(k))
+    const key = this.getKey(k)
     if (this._data[key]) {
       clearTimeout(this._data[key].timeoutId)
       delete this._data[key]
@@ -22,7 +31,7 @@ class Cache extends Base {
 
     const timeoutId = setTimeout(() => {
       delete this._data[key]
-    }, 1000 * 60 * 10)
+    }, this.ttl)
 
     this._data[key] = {
       value: v,
@@ -34,7 +43,7 @@ class Cache extends Base {
   }
 
   get(k) {
-    const key = JSON.stringify(cloneSorted(k))
+    const key = this.getKey(k)
     if (key in this._data) {
       debug('[get][%s] found, key=%s', this.name, key)
     } else {
@@ -46,3 +55,4 @@ class Cache extends Base {
 
 export const resultsCache = new Cache('results')
 export const filtersCache = new Cache('filters')
+export const labelsCache = new Cache('labels', ONE_MINUTE)

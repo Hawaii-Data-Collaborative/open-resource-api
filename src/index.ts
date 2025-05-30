@@ -11,6 +11,7 @@ import json from 'koa-json'
 import morgan from 'koa-morgan'
 import proxy from 'koa-proxies'
 import serve from 'koa-static'
+import session from 'koa-session'
 import nunjucks from 'nunjucks'
 import pingRouter from './routes/ping'
 import routerV1 from './routes/v1'
@@ -28,6 +29,26 @@ const PORT = Number(process.env.PORT || '8080')
 const ADMIN_ORIGIN = process.env.ADMIN_ORIGIN || 'http://localhost:8081'
 const CRON_ENABLED = process.env.CRON_ENABLED === '1'
 const LOAD_MEILISEARCH_ON_STARTUP = process.env.LOAD_MEILISEARCH_ON_STARTUP === '1'
+import { COOKIE_NAME_LANG } from './constants'
+
+const APP_SECRET = process.env.APP_SECRET
+const PROD = process.env.NODE_ENV === 'production'
+if (!APP_SECRET) {
+  throw new Error('APP_SECRET is not set')
+}
+
+app.keys = [APP_SECRET]
+
+const tenYears = 10 * 365 * 24 * 60 * 60 * 1000
+const sessionConfig = {
+  key: COOKIE_NAME_LANG,
+  maxAge: tenYears,
+  secure: PROD,
+  httpOnly: PROD,
+  sameSite: PROD ? 'Strict' : undefined
+}
+
+app.use(session(sessionConfig, app))
 
 nunjucks.configure('templates', { noCache: true })
 
@@ -62,7 +83,7 @@ if (FRONTEND_DIR) {
 }
 
 // Logging
-morgan.token('remote-addr', (req) => req.headers['x-real-ip'])
+morgan.token('remote-addr', (req) => req.headers['x-real-ip'] as string)
 app.use(morgan('combined'))
 
 // Use proxy in production (required for ctx.hostname to work properly when behind a proxy)
@@ -99,7 +120,7 @@ app.use(
 
 let corsOptions
 if (app.env === 'development') {
-  corsOptions = { credentials: true }
+  corsOptions = { credentials: true, origin: 'http://localhost:3005' }
 }
 
 app.use(cors(corsOptions))

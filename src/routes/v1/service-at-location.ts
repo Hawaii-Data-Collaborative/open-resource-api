@@ -1,6 +1,6 @@
 import Router from '@koa/router'
 import { Prisma } from '@prisma/client'
-import { searchService } from '../../services'
+import { SearchService } from '../../services'
 
 const debug = require('debug')('app:routes:service-at-location')
 
@@ -10,6 +10,7 @@ const router = new Router({
 
 router.get('/:id', async (ctx) => {
   debug(ctx.url)
+  const searchService = new SearchService(ctx)
   try {
     const result = await searchService.buildResult(ctx.params.id)
     ctx.body = result

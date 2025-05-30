@@ -14,6 +14,7 @@ import suggestion from './suggestion'
 import organization from './organization'
 import userActivity from './user-activity'
 import auth from './auth'
+import labels from './labels'
 
 const BASE_PREFIX = process.env.BASE_PREFIX || ''
 const router = new Router({
@@ -34,5 +35,6 @@ router.use(category.routes()).use(category.allowedMethods())
 router.use(banner.routes()).use(banner.allowedMethods())
 router.use(auth.routes()).use(auth.allowedMethods())
 router.use(admin.routes()).use(admin.allowedMethods())
+router.use(labels.routes()).use(labels.allowedMethods())
 
 export default router

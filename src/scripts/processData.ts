@@ -41,9 +41,7 @@ async function replaceAsteriskSeparators() {
     const args: any = {}
 
     for (const taxColumn of PROGRAM_TAX_COLUMNS) {
-      // @ts-ignore
       if (typeof p[taxColumn] == 'string' && p[taxColumn].includes(badSeparator)) {
-        // @ts-ignore
         args[taxColumn] = p[taxColumn].replaceAll(badSeparator, GOOD_SEPARATOR)
       }
     }
@@ -102,6 +100,7 @@ async function replaceCommaSeparators() {
   console.log('[replaceCommaSeparators] updated %s programs', programs.length)
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function fixNewlines() {
   const programs = await prisma.program.findMany({
     where: {
@@ -156,12 +155,10 @@ export async function splitProgramTaxonomyColumns() {
   })
 
   for (const p of programs) {
-    let all = []
+    let all: string[] = []
     const taxColumns = PROGRAM_TAX_COLUMNS.slice(1)
     for (const taxColumn of taxColumns) {
-      // @ts-ignore
       if (typeof p[taxColumn] === 'string' && p[taxColumn]) {
-        // @ts-ignore
         all.push(...p[taxColumn].split(';'))
       }
     }
