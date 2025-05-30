@@ -160,7 +160,7 @@ export class SearchService extends Service {
           .index(programIndex)
           .search(searchText, { attributesToRetrieve: ['id'], limit: 5000 })
         const ids = res.hits.map((h) => h.id)
-        programs = await prisma.program.findMany({ where: { id: { in: ids } } })
+        programs = await prisma.program.findMany({ where: { id: { in: ids }, Status__c: { not: 'Inactive' } } })
         await this.programService.translate(programs)
         debug('[search] main search found %s programs', programs.length)
 
@@ -383,7 +383,7 @@ export class SearchService extends Service {
 
     if (!programs) {
       const programIds = sitePrograms.map((sp) => sp.Program__c) as string[]
-      programs = await prisma.program.findMany({ where: { id: { in: programIds } } })
+      programs = await prisma.program.findMany({ where: { id: { in: programIds }, Status__c: { not: 'Inactive' } } })
       await this.programService.translate(programs)
     }
 
