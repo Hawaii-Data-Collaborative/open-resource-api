@@ -118,7 +118,7 @@ export class SearchService extends Service {
 
     debug('[search] input=%j options=%j', input, options)
 
-    const cacheKey = { ...input, filters: undefined }
+    const cacheKey = { ...input, lang, filters: undefined }
     const cachedResults = resultsCache.get(cacheKey)
     const cachedFilters = filtersCache.get(cacheKey)
 
@@ -645,7 +645,9 @@ export class SearchService extends Service {
 
     const t = this.t.bind(this)
 
-    const cacheKey = { ...input, filters: undefined }
+    const lang = this.lang
+
+    const cacheKey = { ...input, lang, filters: undefined }
     let cachedFilters = filtersCache.get(cacheKey)
 
     if (!cachedFilters) {
