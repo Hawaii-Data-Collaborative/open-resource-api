@@ -1,9 +1,8 @@
 import querystring from 'querystring'
 import Router from '@koa/router'
 import nunjucks from 'nunjucks'
-import { searchService } from '../services'
+import { SearchService } from '../services'
 import prisma from '../lib/prisma'
-import { buildResults } from '../services/search'
 
 const BASE_PREFIX = process.env.BASE_PREFIX || ''
 const PAGE_SIZE = 100
@@ -32,6 +31,7 @@ router.get('/about', async (ctx) => {
 })
 
 let cachedPrograms: any[]
+
 router.get('/programs', async (ctx) => {
   const { limit, offset } = getPaginationInfo(ctx)
   const sort = (ctx.query.sort as string) ?? 'service_name'
@@ -43,10 +43,11 @@ router.get('/programs', async (ctx) => {
       select: { id: true, Site__c: true, Program__c: true },
       where: { Program__c: { in: programIds } }
     })
-    cachedPrograms = await buildResults(sitePrograms as any, programs)
+    const service = new SearchService(ctx)
+    cachedPrograms = await service.buildResults(sitePrograms as any, programs)
 
     setTimeout(() => {
-      // @ts-expect-error
+      // @ts-expect-error it's fine
       cachedPrograms = null
     }, CACHE_TIME)
   }
@@ -106,6 +107,7 @@ router.get('/categories', async (ctx) => {
 })
 
 router.get('/categories/:id', async (ctx) => {
+  const service = new SearchService(ctx)
   const category = await prisma.category.findUniqueOrThrow({ where: { id: Number(ctx.params.id as string) } })
   const allCodes = (querystring.parse(category.params as string).taxonomies as string).split(',')
   const exactCodes = allCodes.filter((c) => !c.endsWith('*'))
@@ -126,13 +128,13 @@ router.get('/categories/:id', async (ctx) => {
     taxonomies.push(...tmp)
   }
 
-  const programs = await searchService.findProgramsByTaxonomyIds(taxonomies.map((t) => t.id))
+  const programs = await service.findProgramsByTaxonomyIds(taxonomies.map((t) => t.id))
   const programIds = programs.map((p) => p.id)
   const sitePrograms = await prisma.site_program.findMany({
     select: { id: true, Site__c: true, Program__c: true },
     where: { Program__c: { in: programIds } }
   })
-  const searchResults = await buildResults(sitePrograms as any, programs)
+  const searchResults = await service.buildResults(sitePrograms as any, programs)
   searchResults.sort((a, b) => a.service_name.localeCompare(b.service_name))
   const html = nunjucks.render('category.html', {
     category: category.name,
@@ -143,6 +145,7 @@ router.get('/categories/:id', async (ctx) => {
 })
 
 router.get('/taxonomies', async (ctx) => {
+  const service = new SearchService(ctx)
   const { limit, offset } = getPaginationInfo(ctx)
   const sort = (ctx.query.sort as string) ?? 'Name'
 
@@ -155,7 +158,7 @@ router.get('/taxonomies', async (ctx) => {
   })
 
   for (const t of taxonomies) {
-    const programs = await searchService.findProgramsByTaxonomyIds([t.id])
+    const programs = await service.findProgramsByTaxonomyIds([t.id])
     let programCount = 0
     if (programs.length) {
       const spList = await prisma.site_program.findMany({
@@ -175,7 +178,7 @@ router.get('/taxonomies', async (ctx) => {
       programCount = sites.length
     }
 
-    // @ts-expect-error
+    // @ts-expect-error it's fine
     t.programCount = programCount
   }
 
@@ -197,15 +200,16 @@ router.get('/taxonomies', async (ctx) => {
 })
 
 router.get('/taxonomies/:id', async (ctx) => {
+  const service = new SearchService(ctx)
   const id = ctx.params.id as string
   const taxonomy = await prisma.taxonomy.findUniqueOrThrow({ where: { id } })
-  const programs = await searchService.findProgramsByTaxonomyIds([id])
+  const programs = await service.findProgramsByTaxonomyIds([id])
   const programIds = programs.map((p) => p.id)
   const sitePrograms = await prisma.site_program.findMany({
     select: { id: true, Site__c: true, Program__c: true },
     where: { Program__c: { in: programIds } }
   })
-  const searchResults = await buildResults(sitePrograms as any, programs)
+  const searchResults = await service.buildResults(sitePrograms as any, programs)
   searchResults.sort((a, b) => a.service_name.localeCompare(b.service_name))
   const html = nunjucks.render('taxonomy.html', { taxonomy, programs: searchResults })
   ctx.body = html
@@ -226,7 +230,7 @@ router.get('/searches', async (ctx) => {
     cachedSearches = rows.map((r) => ({ label: r.term, url: encodeURIComponent(r.term) }))
 
     setTimeout(() => {
-      // @ts-expect-error
+      // @ts-expect-error it's fine
       cachedSearches = null
     }, CACHE_TIME)
   }

@@ -1,8 +1,7 @@
 import Router from '@koa/router'
 import { loginRequired } from '../../middleware'
-import { favoriteService } from '../../services'
 import { BadRequestError } from '../../errors'
-
+import { FavoriteService } from '../../services'
 const router = new Router({
   prefix: '/favorite'
 })
@@ -11,12 +10,14 @@ const router = new Router({
  * Get all favorites for a specified user (based on current user being authorized)
  */
 router.get('/', loginRequired(), async (ctx) => {
+  const favoriteService = new FavoriteService(ctx)
   const userId = ctx.state.user.id
   const favorites = await favoriteService.getFavorites(userId)
   ctx.body = favorites
 })
 
 router.get('/spids', loginRequired(), async (ctx) => {
+  const favoriteService = new FavoriteService(ctx)
   const userId = ctx.state.user.id
   const spids = await favoriteService.getFavoriteSiteProgramIds(userId)
   ctx.body = spids
@@ -56,6 +57,7 @@ router.get('/spids', loginRequired(), async (ctx) => {
  * Create a new favorite based on the currently authorized user.
  */
 router.post('/', loginRequired(), async (ctx) => {
+  const favoriteService = new FavoriteService(ctx)
   // @ts-ignore
   const { id } = ctx.request.body
   const userId = ctx.state.user.id
@@ -68,6 +70,7 @@ router.post('/', loginRequired(), async (ctx) => {
  * Delete a favorite based on the currently authorized user.
  */
 router.delete('/:id', loginRequired(), async (ctx) => {
+  const favoriteService = new FavoriteService(ctx)
   const { id } = ctx.params
   const userId = ctx.state.user.id
   if (!id || id.length === 0) throw new BadRequestError('Invalid ID')

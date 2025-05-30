@@ -1,12 +1,13 @@
 import Router from '@koa/router'
-import { categoryService } from '../../services'
+import { CategoryService } from '../../services'
 
 const router = new Router({
   prefix: '/categories'
 })
 
 router.get('/', async (ctx) => {
-  const categories = await categoryService.getCategories()
+  const service = new CategoryService(ctx)
+  const categories = await service.getCategories()
   ctx.body = categories
 })
 

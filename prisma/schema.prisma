@@ -490,6 +490,8 @@ model agency {
   Partners_In_Care_PIC_Partner_Agency__c String?
 
   attributes String?
+
+  translations agency_translation[]
 }
 
 model program {
@@ -643,6 +645,8 @@ model program {
   Minimum_Age__c String?
 
   attributes String?
+
+  translations program_translation[]
 }
 
 model program_service {
@@ -802,6 +806,8 @@ model site {
   Mailing_Address_Same_as_Physical__c String?
 
   attributes String?
+
+  translations site_translation[]
 }
 
 model site_program {
@@ -910,6 +916,8 @@ model taxonomy {
   Secondary_Category_Search__c String?
 
   attributes String?
+
+  translations taxonomy_translation[]
 }
 
 model suggestion {
@@ -953,6 +961,8 @@ model category {
   active    Boolean
   createdAt String?
   updatedAt String?
+
+  translations category_translation[]
 }
 
 model user {
@@ -971,4 +981,84 @@ model session {
   data      String?
   createdAt String?
   updatedAt String?
+}
+
+model agency_translation {
+  id        Int      @id @default(autoincrement())
+  agencyId  String
+  language  String
+  name      String?
+  overview  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  agency agency @relation(fields: [agencyId], references: [id])
+
+  @@unique([agencyId, language])
+}
+
+model category_translation {
+  id         Int      @id @default(autoincrement())
+  categoryId Int
+  language   String
+  name       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category category @relation(fields: [categoryId], references: [id])
+
+  @@unique([categoryId, language])
+}
+
+model program_translation {
+  id                             Int      @id @default(autoincrement())
+  programId                      String
+  language                       String
+  name                           String?
+  ageRestrictions                String?
+  ageRestrictionOther            String?
+  eligibilityLong                String?
+  feesOther                      String?
+  fees                           String?
+  intakeProcedureMultiselect     String?
+  intakeProceduresOther          String?
+  languagesConsistentlyAvailable String?
+  languagesText                  String?
+  maximumAge                     String?
+  minimumAge                     String?
+  programSpecialNotesHours       String?
+  serviceDescription             String?
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+
+  program program @relation(fields: [programId], references: [id])
+
+  @@unique([programId, language])
+}
+
+model site_translation {
+  id        Int      @id @default(autoincrement())
+  siteId    String
+  language  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site site @relation(fields: [siteId], references: [id])
+
+  @@unique([siteId, language])
+}
+
+model taxonomy_translation {
+  id         Int      @id @default(autoincrement())
+  taxonomyId String
+  language   String
+  name       String?
+  definition String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  taxonomy taxonomy @relation(fields: [taxonomyId], references: [id])
+
+  @@unique([taxonomyId, language])
 }
