@@ -2,7 +2,7 @@ export const searchableAttributes = {
   program: [
     'Name',
     'keywords',
-    'Service_Description__c',
+    // 'Service_Description__c',
     'AKA_Name__c',
     'AccountName',
     // 'Accessibility__c',
