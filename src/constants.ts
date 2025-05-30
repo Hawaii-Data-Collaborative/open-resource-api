@@ -27,7 +27,10 @@ export const COOKIE_NAME_LANG = 'Auw211Lang'
 export const LANGUAGES = ['haw', 'es', 'zh', 'ja', 'ko', 'vi', 'tl']
 
 export const translationFieldMap = {
-  agency: [['Overview__c', 'overview']],
+  agency: [
+    ['Name', 'name'],
+    ['Overview__c', 'overview']
+  ],
   program: [
     ['Name', 'name'],
     ['Age_Restrictions__c', 'ageRestrictions'],
