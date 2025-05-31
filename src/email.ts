@@ -1,17 +1,8 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 
 const debug = require('debug')('app:services:email')
 
-const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM, SEND_EMAILS } = process.env
-
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  secure: true,
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASS
-  }
-})
+const { EMAIL_API_KEY, SEND_EMAILS, SMTP_FROM } = process.env
 
 interface SendEmailOptions {
   to: string
@@ -26,14 +17,23 @@ export async function sendEmail({ to, subject, text, html }: SendEmailOptions) {
     return
   }
 
-  const result = await transporter.sendMail({
-    from: SMTP_FROM,
-    to,
-    subject,
-    text,
-    html
-  })
+  const resend = new Resend(EMAIL_API_KEY)
 
-  debug('[send]: result=%j', result)
-  return result
+  try {
+    // @ts-expect-error it's fine
+    const result = await resend.emails.send({
+      from: SMTP_FROM as string,
+      to,
+      subject,
+      text,
+      html
+    })
+
+    debug('[send] result=%j', result)
+
+    return result
+  } catch (err) {
+    debug('[send] %s', err)
+    throw err
+  }
 }
