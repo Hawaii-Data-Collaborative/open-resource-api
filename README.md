@@ -1,79 +1,25 @@
 Cloned from https://github.com/211-Connect/open-resource-api.
 
-# Open Resource API
+## Development
 
-The goal of this project is to provide all 211s with an equal opportunity at a rich user experience, modern speed and efficiency for data searchability, and a low barrier to entry.
+### Setup
 
-## Dependencies
+Clone the repo, run `npm i`, run `npx prisma generate`.
 
-- [Open Resource Search](https://github.com/211-Connect/open-resource-search)
-- Amazon Web Services
-  - Cognito
-  - Simple Email Service
-- A hosting platform
-  - We recommend Digital Ocean App Platform
-  - Other options include Render, Heroku, etc.
-- Google Places
-- ElasticSearch
-- MySQL
+`cp .env.example .env` then edit accordingly.
 
-## Run Locally
+### Running
 
-Clone the project
+Open a terminal, run `npm run watch` to start the typescript compiler.
+Open another terminal, run `npm run dev` to start the server.
 
-```bash
-  git clone https://github.com/211-Connect/open-resource-api
-```
+### Build and deploy
 
-Go to the project directory
+Run `./build.sh` to compile and zip the code. Run `./deploy.sh` to copy the
+dist files to the production machine then execute commands to update and restart the
+production server.
 
-```bash
-  cd open-resource-api
-```
-
-Install dependencies
-
-```bash
-  npm install
-```
-
-Run the SQL migration
-
-```bash
-  npx prisma migrate dev
-```
-
-Start the server
-
-```bash
-  npm run dev
-```
-
-## Deployment
-
-For automated CI/CD we recommend (and support in this project) Digital Ocean App Platform. Getting set up is as simple as clicking the deploy button below.
-
-[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/211-Connect/open-resource-api/tree/main)
-
-If you'd like to host this on your own, or on an alternative platform, you'll need to do the following:
-
-install dependencies
-
-```bash
-npm install
-```
-
-build the project
-
-```bash
-npm run build
-```
-
-and then start the server
-
-```bash
-npm start
-```
+NOTE: `./deploy.sh` assumes you have an entry called `auw1` in your `~/.ssh/config` file.
 
 ## License
 
