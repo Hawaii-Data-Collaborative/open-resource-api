@@ -72,7 +72,7 @@ export class ProgramService extends Service {
           languages =
             engLabel +
             ', ' +
-            (program.Languages_Text__c as string)
+            (program.Languages_Text__c ?? '')
               .replace(`${engLabel} ${t('and')} `, '')
               .replace(`${engLabel}, `, '')
               .replace(`${engLabel}; `, '')
