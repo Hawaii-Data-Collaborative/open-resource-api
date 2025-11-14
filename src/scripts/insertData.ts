@@ -55,6 +55,24 @@ function processData(data: any[]) {
 
 let totalCharacterCount = 0
 
+/**
+ * Checks if any translatable fields have changed between old and new records
+ * @param oldRecord - The existing record from the database
+ * @param newRecord - The new record to be inserted
+ * @param fields - Array of [sourceField, translatedField] tuples from translationFieldMap
+ * @returns true if any translatable field values differ
+ */
+function hasTranslatableFieldsChanged(oldRecord: any, newRecord: any, fields: string[][]): boolean {
+  for (const [field] of fields) {
+    const oldValue = oldRecord[field]?.trim() ?? ''
+    const newValue = newRecord[field]?.trim() ?? ''
+    if (oldValue !== newValue) {
+      return true
+    }
+  }
+  return false
+}
+
 async function translateData(
   modelName: string,
   rows: any[],
@@ -95,6 +113,13 @@ export async function insertAgencyData() {
     return
   }
   const ids = agencyData.map((x) => x.id)
+
+  // Fetch existing records to compare translatable fields
+  const existingAgencies = await prisma.agency.findMany({
+    where: { id: { in: ids } }
+  })
+  const existingAgenciesMap = new Map(existingAgencies.map((a) => [a.id, a]))
+
   const args: any = { where: { id: { in: ids } } }
   const { count } = await prisma.agency.deleteMany(args)
   console.log('[insertAgencyData] deleted %s rows', count)
@@ -111,13 +136,26 @@ export async function insertAgencyData() {
   }
   console.log('[insertAgencyData] inserted %s rows', result.length)
 
-  const { count: count2 } = await prisma.agency_translation.deleteMany({
-    where: { agencyId: { in: result.map((x) => x.id) } }
+  // Only translate records where translatable fields have changed
+  const recordsToTranslate = result.filter((agency) => {
+    const existingAgency = existingAgenciesMap.get(agency.id)
+    if (!existingAgency) {
+      return true // New record, needs translation
+    }
+    return hasTranslatableFieldsChanged(existingAgency, agency, translationFieldMap.agency)
   })
-  console.log('[insertAgencyData] deleted %s agency_translation rows', count2)
-  await translateData('agency_translation', result, translationFieldMap.agency, (agencyId, data) =>
-    prisma.agency_translation.create({ data: { ...data, agencyId } })
-  )
+
+  console.log('[insertAgencyData] %s/%s records need translation', recordsToTranslate.length, result.length)
+
+  if (recordsToTranslate.length > 0) {
+    const { count: count2 } = await prisma.agency_translation.deleteMany({
+      where: { agencyId: { in: recordsToTranslate.map((x) => x.id) } }
+    })
+    console.log('[insertAgencyData] deleted %s agency_translation rows', count2)
+    await translateData('agency_translation', recordsToTranslate, translationFieldMap.agency, (agencyId, data) =>
+      prisma.agency_translation.create({ data: { ...data, agencyId } })
+    )
+  }
 }
 
 let rawProgramData
@@ -130,6 +168,13 @@ export async function insertProgramData() {
     return
   }
   const ids = programData.map((x) => x.id)
+
+  // Fetch existing records to compare translatable fields
+  const existingPrograms = await prisma.program.findMany({
+    where: { id: { in: ids } }
+  })
+  const existingProgramsMap = new Map(existingPrograms.map((p) => [p.id, p]))
+
   const programsWithKeywords = await prisma.program.findMany({
     select: {
       id: true,
@@ -162,14 +207,27 @@ export async function insertProgramData() {
   }
   console.log('[insertProgramData] inserted %s rows', result.length)
 
-  const { count: count2 } = await prisma.program_translation.deleteMany({
-    where: { programId: { in: result.map((x) => x.id) } }
+  // Only translate records where translatable fields have changed
+  const recordsToTranslate = result.filter((program) => {
+    const existingProgram = existingProgramsMap.get(program.id)
+    if (!existingProgram) {
+      return true // New record, needs translation
+    }
+    return hasTranslatableFieldsChanged(existingProgram, program, translationFieldMap.program)
   })
-  console.log('[insertProgramData] deleted %s program_translation rows', count2)
 
-  await translateData('program_translation', result, translationFieldMap.program, (programId, data) =>
-    prisma.program_translation.create({ data: { ...data, programId } })
-  )
+  console.log('[insertProgramData] %s/%s records need translation', recordsToTranslate.length, result.length)
+
+  if (recordsToTranslate.length > 0) {
+    const { count: count2 } = await prisma.program_translation.deleteMany({
+      where: { programId: { in: recordsToTranslate.map((x) => x.id) } }
+    })
+    console.log('[insertProgramData] deleted %s program_translation rows', count2)
+
+    await translateData('program_translation', recordsToTranslate, translationFieldMap.program, (programId, data) =>
+      prisma.program_translation.create({ data: { ...data, programId } })
+    )
+  }
 }
 
 export async function insertProgramServiceData() {
@@ -216,6 +274,13 @@ export async function insertSiteData() {
     return
   }
   const ids = siteData.map((x) => x.id)
+
+  // Fetch existing records to compare translatable fields
+  const existingSites = await prisma.site.findMany({
+    where: { id: { in: ids } }
+  })
+  const existingSitesMap = new Map(existingSites.map((s) => [s.id, s]))
+
   const args: any = { where: { id: { in: ids } } }
   const { count } = await prisma.site.deleteMany(args)
   console.log('[insertSiteData] deleted %s rows', count)
@@ -232,14 +297,27 @@ export async function insertSiteData() {
   }
   console.log('[insertSiteData] inserted %s rows', result.length)
 
-  const { count: count2 } = await prisma.site_translation.deleteMany({
-    where: { siteId: { in: result.map((x) => x.id) } }
+  // Only translate records where translatable fields have changed
+  const recordsToTranslate = result.filter((site) => {
+    const existingSite = existingSitesMap.get(site.id)
+    if (!existingSite) {
+      return true // New record, needs translation
+    }
+    return hasTranslatableFieldsChanged(existingSite, site, translationFieldMap.site)
   })
-  console.log('[insertSiteData] deleted %s site_translation rows', count2)
 
-  await translateData('site_translation', result, translationFieldMap.site, (siteId, data) =>
-    prisma.site_translation.create({ data: { ...data, siteId } })
-  )
+  console.log('[insertSiteData] %s/%s records need translation', recordsToTranslate.length, result.length)
+
+  if (recordsToTranslate.length > 0) {
+    const { count: count2 } = await prisma.site_translation.deleteMany({
+      where: { siteId: { in: recordsToTranslate.map((x) => x.id) } }
+    })
+    console.log('[insertSiteData] deleted %s site_translation rows', count2)
+
+    await translateData('site_translation', recordsToTranslate, translationFieldMap.site, (siteId, data) =>
+      prisma.site_translation.create({ data: { ...data, siteId } })
+    )
+  }
 }
 
 export async function insertSiteProgramData() {
@@ -279,6 +357,13 @@ export async function insertTaxonomyData() {
     return
   }
   const ids = taxonomyData.map((x) => x.id)
+
+  // Fetch existing records to compare translatable fields
+  const existingTaxonomies = await prisma.taxonomy.findMany({
+    where: { id: { in: ids } }
+  })
+  const existingTaxonomiesMap = new Map(existingTaxonomies.map((t) => [t.id, t]))
+
   const args: any = { where: { id: { in: ids } } }
   const { count } = await prisma.taxonomy.deleteMany(args)
   console.log('[insertTaxonomyData] deleted %s rows', count)
@@ -295,14 +380,27 @@ export async function insertTaxonomyData() {
   }
   console.log('[insertTaxonomyData] inserted %s rows', result.length)
 
-  const { count: count2 } = await prisma.taxonomy_translation.deleteMany({
-    where: { taxonomyId: { in: result.map((x) => x.id) } }
+  // Only translate records where translatable fields have changed
+  const recordsToTranslate = result.filter((taxonomy) => {
+    const existingTaxonomy = existingTaxonomiesMap.get(taxonomy.id)
+    if (!existingTaxonomy) {
+      return true // New record, needs translation
+    }
+    return hasTranslatableFieldsChanged(existingTaxonomy, taxonomy, translationFieldMap.taxonomy)
   })
-  console.log('[insertTaxonomyData] deleted %s taxonomy_translation rows', count2)
 
-  await translateData('taxonomy_translation', result, translationFieldMap.taxonomy, (taxonomyId, data) =>
-    prisma.taxonomy_translation.create({ data: { ...data, taxonomyId } })
-  )
+  console.log('[insertTaxonomyData] %s/%s records need translation', recordsToTranslate.length, result.length)
+
+  if (recordsToTranslate.length > 0) {
+    const { count: count2 } = await prisma.taxonomy_translation.deleteMany({
+      where: { taxonomyId: { in: recordsToTranslate.map((x) => x.id) } }
+    })
+    console.log('[insertTaxonomyData] deleted %s taxonomy_translation rows', count2)
+
+    await translateData('taxonomy_translation', recordsToTranslate, translationFieldMap.taxonomy, (taxonomyId, data) =>
+      prisma.taxonomy_translation.create({ data: { ...data, taxonomyId } })
+    )
+  }
 }
 
 export async function cleanup() {
